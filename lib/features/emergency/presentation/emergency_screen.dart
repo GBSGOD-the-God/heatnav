@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/i18n/app_localizations.dart';
 import '../../profile/presentation/profile_controller.dart';
 
 /// Full-screen heat-emergency helper: recognise heat stroke, act, call.
@@ -17,7 +18,7 @@ class EmergencyScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Emergency'),
+        title: Text(context.tr('Emergency')),
         backgroundColor: theme.colorScheme.errorContainer,
       ),
       body: ListView(
@@ -33,7 +34,7 @@ class EmergencyScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Heat stroke is a medical emergency',
+                  context.tr('Heat stroke is a medical emergency'),
                   style: theme.textTheme.titleLarge?.copyWith(
                     color: theme.colorScheme.onErrorContainer,
                   ),
@@ -69,7 +70,8 @@ class EmergencyScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 20),
-          Text('While help arrives', style: theme.textTheme.titleMedium),
+          Text(context.tr('While help arrives'),
+              style: theme.textTheme.titleMedium),
           const SizedBox(height: 10),
           const _Step(
             number: 1,
@@ -108,7 +110,7 @@ class EmergencyScreen extends ConsumerWidget {
             Card(
               child: ListTile(
                 leading: const Icon(Icons.share_location),
-                title: const Text('Share my location'),
+                title: Text(context.tr('Share my location')),
                 subtitle: const Text('Send coordinates via any messaging app'),
                 onTap: () {
                   final uri = Uri.parse(

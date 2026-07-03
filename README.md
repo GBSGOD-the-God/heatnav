@@ -9,6 +9,7 @@ Built for the *Smart World – Innovate for the Future* competition.
 
 | Feature | In one line |
 |---|---|
+| **Languages** | Choose your language at first launch (English / हिन्दी), switchable anytime from Profile — built for workers who read/speak an Indian language more comfortably than English. Any untranslated string safely falls back to English, and adding another Indian language is one translation map. |
 | **Personal heat profile** | 90-second onboarding: exact location (GPS, worldwide search, or quick-pick city), age, occupation, outdoor hours, health factors (device-only), home cooling situation. |
 | **Today dashboard** | Personalized risk band (green→red), feels-like hero, 24-h chart, high-risk-hours strip, tailored tips, community alerts, emergency button. |
 | **Plan My Day** ⭐ | Enter "cricket, 2–4 PM" → verdict for *you*, the *why*, a safer departure window, and a reasoned preparation checklist. |

@@ -5,12 +5,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/domain/place.dart';
 import '../../../core/domain/profile/user_profile.dart';
+import '../../../core/i18n/app_language.dart';
+import '../../../core/i18n/app_localizations.dart';
+import '../../../core/i18n/locale_controller.dart';
 import '../../../core/widgets/choice_chip_group.dart';
 import '../../profile/presentation/profile_controller.dart';
 import 'location_picker.dart';
 
-/// Five-step onboarding: story → location → about you → health (optional) →
-/// home & cooling. Target: under 90 seconds, everything editable later.
+/// Six-step onboarding: language → story → location → about you →
+/// health (optional) → home & cooling. Target: under 90 seconds, everything
+/// editable later.
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -21,7 +25,7 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _pageController = PageController();
   int _step = 0;
-  static const _stepCount = 5;
+  static const _stepCount = 6;
 
   // Collected answers.
   final _nameController = TextEditingController();
@@ -43,13 +47,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   bool get _canContinue => switch (_step) {
-        0 => true,
-        1 => _city != null,
-        2 => _ageGroup != null &&
+        0 => true, // Language always has a default.
+        1 => true, // Welcome.
+        2 => _city != null,
+        3 => _ageGroup != null &&
             _occupation != null &&
             _outdoorHours != null &&
             _transport != null,
-        3 => true, // Health is always optional.
+        4 => true, // Health is always optional.
         _ => _homeType != null && _cooling != null && _powerCuts != null,
       };
 
@@ -140,6 +145,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 physics: const NeverScrollableScrollPhysics(),
                 onPageChanged: (page) => setState(() => _step = page),
                 children: [
+                  _LanguageStep(
+                    selected: ref.watch(localeControllerProvider),
+                    onSelected: (lang) => ref
+                        .read(localeControllerProvider.notifier)
+                        .set(lang),
+                  ),
                   const _WelcomeStep(),
                   _LocationStep(
                     selected: _city,
@@ -181,12 +192,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: _canContinue ? _next : null,
-                  child: Text(switch (_step) {
-                    0 => 'Get started',
-                    3 => _health.isEmpty ? 'Skip for now' : 'Continue',
-                    4 => 'Build my heat profile',
+                  child: Text(context.tr(switch (_step) {
+                    1 => 'Get started',
+                    4 => _health.isEmpty ? 'Skip for now' : 'Continue',
+                    5 => 'Build my heat profile',
                     _ => 'Continue',
-                  }),
+                  })),
                 ),
               ),
             ),
@@ -232,6 +243,43 @@ class _StepScaffold extends StatelessWidget {
   }
 }
 
+/// Step 0 — pick the app language before anything else, so the rest of
+/// onboarding is already in the user's language.
+class _LanguageStep extends StatelessWidget {
+  const _LanguageStep({required this.selected, required this.onSelected});
+
+  final AppLanguage selected;
+  final ValueChanged<AppLanguage> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return _StepScaffold(
+      title: context.tr('Choose your language'),
+      subtitle: context.tr('You can change this anytime from your profile.'),
+      children: [
+        for (final language in AppLanguage.values)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _SelectableTile(
+              selected: language == selected,
+              leading: Icons.translate,
+              title: language.nativeName,
+              onTap: () => onSelected(language),
+            ),
+          ),
+        const SizedBox(height: 8),
+        Text(
+          'More Indian languages are on the way.',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _WelcomeStep extends StatelessWidget {
   const _WelcomeStep();
 
@@ -239,7 +287,7 @@ class _WelcomeStep extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return _StepScaffold(
-      title: 'Heat is the deadliest\nweather there is.',
+      title: context.tr('Heat is the deadliest\nweather there is.'),
       subtitle:
           'Heatwaves kill more people than floods, cyclones and lightning '
           'combined — and the same afternoon is safe for one person and '
@@ -247,8 +295,8 @@ class _WelcomeStep extends StatelessWidget {
       children: [
         _WelcomePoint(
           icon: Icons.thermostat,
-          title: 'Weather apps report conditions',
-          body: '"It\'s 43°C" tells everyone the same thing.',
+          title: context.tr('Weather apps report conditions'),
+          body: context.tr('"It\'s 43°C" tells everyone the same thing.'),
           delay: 200,
         ),
         _WelcomePoint(
@@ -260,15 +308,15 @@ class _WelcomeStep extends StatelessWidget {
         ),
         _WelcomePoint(
           icon: Icons.psychology_alt_outlined,
-          title: 'Every answer is explainable',
+          title: context.tr('Every answer is explainable'),
           body: 'No black boxes, no invented percentages. Tap "Why this '
               'rating?" on anything we tell you.',
           delay: 440,
         ),
         const SizedBox(height: 16),
         Text(
-          'A few quick questions build your personal heat profile. '
-          'Health answers are optional and never leave this device.',
+          context.tr('A few quick questions build your personal heat profile. '
+              'Health answers are optional and never leave this device.'),
           style: theme.textTheme.bodySmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),
@@ -333,7 +381,7 @@ class _LocationStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _StepScaffold(
-      title: 'Where do you live?',
+      title: context.tr('Where do you live?'),
       subtitle: 'Forecasts, community reports and routes are built around '
           'your exact location — use GPS, search any address, or pick a '
           'city below.',
@@ -417,47 +465,47 @@ class _AboutYouStep extends StatelessWidget {
     final theme = Theme.of(context);
     Widget label(String text) => Padding(
           padding: const EdgeInsets.only(top: 20, bottom: 10),
-          child: Text(text, style: theme.textTheme.titleSmall),
+          child: Text(context.tr(text), style: theme.textTheme.titleSmall),
         );
 
     return _StepScaffold(
-      title: 'About you',
+      title: context.tr('About you'),
       subtitle: 'The same heat affects a delivery rider and an office worker '
           'completely differently.',
       children: [
         TextField(
           controller: nameController,
           textCapitalization: TextCapitalization.words,
-          decoration: const InputDecoration(
-            labelText: 'Your name (optional)',
-            prefixIcon: Icon(Icons.person_outline),
+          decoration: InputDecoration(
+            labelText: context.tr('Your name (optional)'),
+            prefixIcon: const Icon(Icons.person_outline),
           ),
         ),
         label('Age group'),
         ChoiceChipGroup(
           options: AgeGroup.values,
-          labelOf: (a) => a.label,
+          labelOf: (a) => context.tr(a.label),
           selected: ageGroup,
           onSelected: (a) => onChanged(a, occupation, outdoorHours, transport),
         ),
         label('Occupation'),
         ChoiceChipGroup(
           options: Occupation.values,
-          labelOf: (o) => o.label,
+          labelOf: (o) => context.tr(o.label),
           selected: occupation,
           onSelected: (o) => onChanged(ageGroup, o, outdoorHours, transport),
         ),
         label('Hours outdoors on a typical day'),
         ChoiceChipGroup(
           options: OutdoorHours.values,
-          labelOf: (h) => h.label,
+          labelOf: (h) => context.tr(h.label),
           selected: outdoorHours,
           onSelected: (h) => onChanged(ageGroup, occupation, h, transport),
         ),
         label('How do you usually get around?'),
         ChoiceChipGroup(
           options: TransportMode.values,
-          labelOf: (t) => t.label,
+          labelOf: (t) => context.tr(t.label),
           selected: transport,
           onSelected: (t) => onChanged(ageGroup, occupation, outdoorHours, t),
         ),
@@ -476,13 +524,13 @@ class _HealthStep extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return _StepScaffold(
-      title: 'Health factors',
+      title: context.tr('Health factors'),
       subtitle: 'Optional — but they matter. Some conditions and their '
           'medications genuinely change how heat affects you.',
       children: [
         MultiChoiceChipGroup(
           options: HealthCondition.values,
-          labelOf: (c) => c.label,
+          labelOf: (c) => context.tr(c.label),
           selected: selected,
           onChanged: onChanged,
         ),
@@ -529,11 +577,11 @@ class _HomeStep extends StatelessWidget {
     final theme = Theme.of(context);
     Widget label(String text) => Padding(
           padding: const EdgeInsets.only(top: 20, bottom: 10),
-          child: Text(text, style: theme.textTheme.titleSmall),
+          child: Text(context.tr(text), style: theme.textTheme.titleSmall),
         );
 
     return _StepScaffold(
-      title: 'Your home',
+      title: context.tr('Your home'),
       subtitle: 'Night-time recovery decides how much heat you can take the '
           'next day. A tin roof with power cuts is a different life from an '
           'air-conditioned flat.',
@@ -541,21 +589,21 @@ class _HomeStep extends StatelessWidget {
         label('Home type'),
         ChoiceChipGroup(
           options: HomeType.values,
-          labelOf: (h) => h.label,
+          labelOf: (h) => context.tr(h.label),
           selected: homeType,
           onSelected: (h) => onChanged(h, cooling, powerCuts),
         ),
         label('Cooling available'),
         ChoiceChipGroup(
           options: CoolingType.values,
-          labelOf: (c) => c.label,
+          labelOf: (c) => context.tr(c.label),
           selected: cooling,
           onSelected: (c) => onChanged(homeType, c, powerCuts),
         ),
         label('Power cuts in your area'),
         ChoiceChipGroup(
           options: PowerCutFrequency.values,
-          labelOf: (p) => p.label,
+          labelOf: (p) => context.tr(p.label),
           selected: powerCuts,
           onSelected: (p) => onChanged(homeType, cooling, p),
         ),

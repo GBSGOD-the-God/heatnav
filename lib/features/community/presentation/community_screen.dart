@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/i18n/app_localizations.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/empty_state.dart';
@@ -28,12 +29,12 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
         : reports.where((r) => r.category == _filter).toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Community')),
+      appBar: AppBar(title: Text(context.tr('Community'))),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'report',
         onPressed: () => context.push(AppRoutes.communityNew),
         icon: const Icon(Icons.add_location_alt_outlined),
-        label: const Text('Report'),
+        label: Text(context.tr('Report')),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 96),
@@ -48,7 +49,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                 Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: FilterChip(
-                    label: const Text('All'),
+                    label: Text(context.tr('All')),
                     selected: _filter == null,
                     onSelected: (_) => setState(() => _filter = null),
                   ),
@@ -58,7 +59,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                     padding: const EdgeInsets.only(right: 8),
                     child: FilterChip(
                       avatar: Icon(category.icon, size: 16),
-                      label: Text(category.label),
+                      label: Text(context.tr(category.label)),
                       selected: _filter == category,
                       onSelected: (_) => setState(
                         () => _filter = _filter == category ? null : category,
@@ -103,7 +104,8 @@ class _DailyQuestionCard extends ConsumerWidget {
                 Icon(Icons.help_outline,
                     size: 18, color: theme.colorScheme.primary),
                 const SizedBox(width: 8),
-                Text('Today\'s question', style: theme.textTheme.labelMedium),
+                Text(context.tr('Today\'s question'),
+                    style: theme.textTheme.labelMedium),
               ],
             ),
             const SizedBox(height: 8),
@@ -190,7 +192,7 @@ class _ReportCard extends ConsumerWidget {
                           children: [
                             Flexible(
                               child: Text(
-                                report.category.label,
+                                context.tr(report.category.label),
                                 style: theme.textTheme.titleSmall,
                                 overflow: TextOverflow.ellipsis,
                               ),

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../i18n/app_localizations.dart';
+
 /// Consistent section title with optional trailing action, used across every
-/// scrolling screen.
+/// scrolling screen. Titles are translated here so every call site is
+/// localized automatically.
 class SectionHeader extends StatelessWidget {
   const SectionHeader(
     this.title, {
@@ -21,10 +24,12 @@ class SectionHeader extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text(title, style: Theme.of(context).textTheme.titleMedium),
+            child: Text(context.tr(title),
+                style: Theme.of(context).textTheme.titleMedium),
           ),
           if (actionLabel != null)
-            TextButton(onPressed: onAction, child: Text(actionLabel!)),
+            TextButton(
+                onPressed: onAction, child: Text(context.tr(actionLabel!))),
         ],
       ),
     );

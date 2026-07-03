@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/domain/risk/risk_level.dart';
+import '../../../core/i18n/app_localizations.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/risk_palette.dart';
 import '../../../core/utils/formatters.dart';
@@ -37,8 +38,9 @@ class HomeScreen extends ConsumerWidget {
           children: [
             Text(
               profile?.name.isNotEmpty == true
-                  ? 'Hi, ${profile!.name.split(' ').first}'
-                  : 'Today',
+                  ? context.tr('Hi, {name}',
+                      {'name': profile!.name.split(' ').first})
+                  : context.tr('Today'),
               style: theme.textTheme.titleLarge,
             ),
             Text(
@@ -182,9 +184,9 @@ class _HomeBody extends ConsumerWidget {
           Card(
             child: ListTile(
               leading: const Icon(Icons.add_circle_outline),
-              title: const Text('Nothing planned yet'),
-              subtitle:
-                  const Text('Add a plan and get a verdict before you go.'),
+              title: Text(context.tr('Nothing planned yet')),
+              subtitle: Text(
+                  context.tr('Add a plan and get a verdict before you go.')),
               onTap: () => context.push(AppRoutes.planNew),
             ),
           )
@@ -302,7 +304,7 @@ class _RiskHeroCard extends ConsumerWidget {
               ),
             ],
           ),
-          Text(level.headline, style: theme.textTheme.titleMedium),
+          Text(context.tr(level.headline), style: theme.textTheme.titleMedium),
           WhyThisRating(factors: assessment.factors),
         ],
       ),
@@ -324,7 +326,7 @@ class _MetricsGrid extends StatelessWidget {
         Expanded(
           child: StatTile(
             icon: Icons.water_drop_outlined,
-            label: 'Humidity',
+            label: context.tr('Humidity'),
             value: '${current.humidity.round()}%',
           ),
         ),
@@ -332,7 +334,7 @@ class _MetricsGrid extends StatelessWidget {
         Expanded(
           child: StatTile(
             icon: Icons.wb_sunny_outlined,
-            label: 'UV index',
+            label: context.tr('UV index'),
             value: current.uvIndex.toStringAsFixed(0),
             caption: _uvBand(current.uvIndex),
           ),
@@ -341,7 +343,7 @@ class _MetricsGrid extends StatelessWidget {
         Expanded(
           child: StatTile(
             icon: Icons.air,
-            label: 'Air (AQI)',
+            label: context.tr('Air (AQI)'),
             value: aqi?.toString() ?? '—',
             caption: aqi == null ? 'unavailable' : _aqiBand(aqi),
           ),
@@ -350,7 +352,7 @@ class _MetricsGrid extends StatelessWidget {
         Expanded(
           child: StatTile(
             icon: Icons.speed,
-            label: 'Wind',
+            label: context.tr('Wind'),
             value: '${current.windKmh.round()}',
             caption: 'km/h',
           ),
@@ -514,7 +516,7 @@ class _HighRiskStrip extends ConsumerWidget {
                 size: 18, color: palette.green),
             const SizedBox(width: 8),
             Text(
-              'No high-risk hours left today',
+              context.tr('No high-risk hours left today'),
               style: theme.textTheme.labelMedium,
             ),
           ],
@@ -526,7 +528,8 @@ class _HighRiskStrip extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('High-risk hours ahead', style: theme.textTheme.labelMedium),
+          Text(context.tr('High-risk hours ahead'),
+              style: theme.textTheme.labelMedium),
           const SizedBox(height: 8),
           SizedBox(
             height: 40,

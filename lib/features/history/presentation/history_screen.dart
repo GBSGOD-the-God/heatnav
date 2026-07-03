@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/i18n/app_localizations.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/section_header.dart';
@@ -61,7 +62,7 @@ class HistoryScreen extends ConsumerWidget {
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Heat history')),
+      appBar: AppBar(title: Text(context.tr('Heat history'))),
       body: entries.isEmpty && achievements.isEmpty
           ? const EmptyState(
               icon: Icons.timeline,

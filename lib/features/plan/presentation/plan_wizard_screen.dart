@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/domain/place.dart';
 import '../../../core/domain/profile/user_profile.dart';
+import '../../../core/i18n/app_localizations.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/choice_chip_group.dart';
@@ -84,7 +85,7 @@ class _PlanWizardScreenState extends ConsumerState<PlanWizardScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Plan my day'),
+        title: Text(context.tr('Plan my day')),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => context.pop(),
@@ -131,7 +132,7 @@ class _PlanWizardScreenState extends ConsumerState<PlanWizardScreen> {
                   if (_step > 0)
                     OutlinedButton(
                       onPressed: () => setState(() => _step--),
-                      child: const Text('Back'),
+                      child: Text(context.tr('Back')),
                     ),
                   if (_step > 0) const SizedBox(width: 12),
                   Expanded(
@@ -140,7 +141,7 @@ class _PlanWizardScreenState extends ConsumerState<PlanWizardScreen> {
                           ? () =>
                               _step < 2 ? setState(() => _step++) : _save()
                           : null,
-                      child: Text(_step < 2 ? 'Continue' : 'Analyze my plan'),
+                      child: Text(context.tr(_step < 2 ? 'Continue' : 'Analyze my plan')),
                     ),
                   ),
                 ],
@@ -154,7 +155,7 @@ class _PlanWizardScreenState extends ConsumerState<PlanWizardScreen> {
 
   Widget _label(ThemeData theme, String text) => Padding(
         padding: const EdgeInsets.only(top: 20, bottom: 10),
-        child: Text(text, style: theme.textTheme.titleSmall),
+        child: Text(context.tr(text), style: theme.textTheme.titleSmall),
       );
 
   Widget _buildWhatStep(ThemeData theme) {
@@ -167,7 +168,7 @@ class _PlanWizardScreenState extends ConsumerState<PlanWizardScreen> {
       key: const ValueKey(0),
       padding: const EdgeInsets.all(20),
       children: [
-        Text('What are you doing?', style: theme.textTheme.headlineMedium),
+        Text(context.tr('What are you doing?'), style: theme.textTheme.headlineMedium),
         _label(theme, 'Activity'),
         Wrap(
           spacing: 8,
@@ -176,7 +177,7 @@ class _PlanWizardScreenState extends ConsumerState<PlanWizardScreen> {
             for (final a in ActivityType.values)
               ChoiceChip(
                 avatar: Icon(a.icon, size: 18),
-                label: Text(a.label),
+                label: Text(context.tr(a.label)),
                 selected: _activity == a,
                 onSelected: (_) => setState(() {
                   _activity = a;
@@ -234,7 +235,7 @@ class _PlanWizardScreenState extends ConsumerState<PlanWizardScreen> {
       key: const ValueKey(1),
       padding: const EdgeInsets.all(20),
       children: [
-        Text('When?', style: theme.textTheme.headlineMedium),
+        Text(context.tr('When?'), style: theme.textTheme.headlineMedium),
         _label(theme, 'Day'),
         SizedBox(
           height: 76,
@@ -342,7 +343,7 @@ class _PlanWizardScreenState extends ConsumerState<PlanWizardScreen> {
       key: const ValueKey(2),
       padding: const EdgeInsets.all(20),
       children: [
-        Text('Ready to analyze', style: theme.textTheme.headlineMedium),
+        Text(context.tr('Ready to analyze'), style: theme.textTheme.headlineMedium),
         const SizedBox(height: 8),
         Text(
           'HeatNav will check every hour of this window against the forecast, '

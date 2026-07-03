@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/domain/risk/risk_engine.dart';
 import '../../../core/domain/risk/risk_level.dart';
+import '../../../core/i18n/app_localizations.dart';
 import '../../../core/theme/risk_palette.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/risk_badge.dart';
@@ -20,7 +21,7 @@ class CalendarScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final weatherAsync = ref.watch(weatherProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Heat calendar')),
+      appBar: AppBar(title: Text(context.tr('Heat calendar'))),
       body: weatherAsync.when(
         loading: () => ListView(
           padding: const EdgeInsets.all(20),

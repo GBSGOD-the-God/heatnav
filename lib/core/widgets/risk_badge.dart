@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../domain/risk/risk_level.dart';
+import '../i18n/app_localizations.dart';
 import '../theme/risk_palette.dart';
 
 /// Compact pill showing a risk band. The only widget allowed to pair risk
@@ -35,7 +36,7 @@ class RiskBadge extends StatelessWidget {
           ),
           const SizedBox(width: 6),
           Text(
-            level.label,
+            context.tr(level.label),
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
                   color: color,
                   fontWeight: FontWeight.w700,

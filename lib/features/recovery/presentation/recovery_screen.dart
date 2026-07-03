@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/i18n/app_localizations.dart';
 import '../../../core/router/app_router.dart';
 import '../data/checkin_model.dart';
 
@@ -30,12 +31,12 @@ class _RecoveryScreenState extends ConsumerState<RecoveryScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('How do you feel?')),
+      appBar: AppBar(title: Text(context.tr('How do you feel?'))),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           Text(
-            'Back from the heat?',
+            context.tr('Back from the heat?'),
             style: theme.textTheme.headlineMedium,
           ),
           const SizedBox(height: 8),
@@ -78,7 +79,7 @@ class _RecoveryScreenState extends ConsumerState<RecoveryScreen> {
                             : Icons.tips_and_updates_outlined,
                       ),
                       const SizedBox(width: 10),
-                      Text('What to do now',
+                      Text(context.tr('What to do now'),
                           style: theme.textTheme.titleSmall),
                     ],
                   ),
@@ -150,7 +151,7 @@ class _FeelingTile extends StatelessWidget {
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           leading: Icon(feeling.icon),
-          title: Text(feeling.label),
+          title: Text(context.tr(feeling.label)),
           trailing: isSelected
               ? Icon(Icons.check_circle, color: theme.colorScheme.primary)
               : null,

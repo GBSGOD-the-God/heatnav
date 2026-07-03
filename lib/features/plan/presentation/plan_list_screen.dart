@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/i18n/app_localizations.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/empty_state.dart';
@@ -21,7 +22,7 @@ class PlanListScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Plans'),
+        title: Text(context.tr('Plans')),
         actions: [
           IconButton(
             tooltip: 'Heat routes',
@@ -38,7 +39,7 @@ class PlanListScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push(AppRoutes.planNew),
         icon: const Icon(Icons.add),
-        label: const Text('Plan my day'),
+        label: Text(context.tr('Plan my day')),
       ),
       body: plans.isEmpty
           ? EmptyState(

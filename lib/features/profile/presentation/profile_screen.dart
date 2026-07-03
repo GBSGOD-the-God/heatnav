@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/domain/profile/user_profile.dart';
+import '../../../core/i18n/app_language.dart';
+import '../../../core/i18n/app_localizations.dart';
+import '../../../core/i18n/locale_controller.dart';
 import '../../../core/widgets/choice_chip_group.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../onboarding/presentation/location_picker.dart';
@@ -24,7 +27,7 @@ class ProfileScreen extends ConsumerWidget {
     final settingsNotifier = ref.read(settingsControllerProvider.notifier);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: AppBar(title: Text(context.tr('Profile'))),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
         children: [
@@ -41,7 +44,7 @@ class ProfileScreen extends ConsumerWidget {
               ),
               title: Text(profile.name.isEmpty ? 'HeatNav user' : profile.name),
               subtitle: Text(
-                '${profile.occupation.label} · ${profile.home.city}',
+                '${context.tr(profile.occupation.label)} · ${profile.home.city}',
               ),
             ),
           ),
@@ -138,26 +141,47 @@ class ProfileScreen extends ConsumerWidget {
               onSelected: (v) => notifier.update((p) => p.copyWith(cooling: v)),
             ),
           ),
+          const SectionHeader('Language'),
+          Card(
+            child: Column(
+              children: [
+                for (final language in AppLanguage.values)
+                  RadioListTile<AppLanguage>(
+                    value: language,
+                    groupValue: ref.watch(localeControllerProvider),
+                    onChanged: (v) {
+                      if (v != null) {
+                        ref.read(localeControllerProvider.notifier).set(v);
+                      }
+                    },
+                    title: Text(language.nativeName),
+                    subtitle: language.englishName != language.nativeName
+                        ? Text(language.englishName)
+                        : null,
+                  ),
+              ],
+            ),
+          ),
           const SectionHeader('Appearance'),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: SegmentedButton<ThemeMode>(
-                segments: const [
+                segments: [
                   ButtonSegment(
                     value: ThemeMode.light,
-                    icon: Icon(Icons.light_mode_outlined),
-                    label: Text('Light'),
+                    icon: const Icon(Icons.light_mode_outlined),
+                    label: Text(context.tr('Light')),
                   ),
                   ButtonSegment(
                     value: ThemeMode.system,
-                    icon: Icon(Icons.brightness_auto_outlined),
-                    label: Text('Auto'),
+                    icon: const Icon(Icons.brightness_auto_outlined),
+                    label: Text(context.tr('Auto')),
                   ),
                   ButtonSegment(
                     value: ThemeMode.dark,
-                    icon: Icon(Icons.dark_mode_outlined),
-                    label: Text('Dark'),
+                    icon: const Icon(Icons.dark_mode_outlined),
+                    label: Text(context.tr('Dark')),
                   ),
                 ],
                 selected: {settings.themeMode},
@@ -356,8 +380,8 @@ class _EditableRow extends StatelessWidget {
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         leading: Icon(icon),
-        title: Text(label, style: theme.textTheme.labelMedium),
-        subtitle: Text(value, style: theme.textTheme.bodyMedium),
+        title: Text(context.tr(label), style: theme.textTheme.labelMedium),
+        subtitle: Text(context.tr(value), style: theme.textTheme.bodyMedium),
         trailing: const Icon(Icons.edit_outlined, size: 18),
         onTap: onTap,
       ),

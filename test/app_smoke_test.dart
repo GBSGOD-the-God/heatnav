@@ -22,10 +22,11 @@ Future<void> _pumpApp(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('first launch lands on onboarding', (tester) async {
+  testWidgets('first launch lands on the language step of onboarding',
+      (tester) async {
     SharedPreferences.setMockInitialValues({});
     await _pumpApp(tester);
-    expect(find.text('Get started'), findsOneWidget);
+    expect(find.text('Choose your language'), findsOneWidget);
   });
 
   testWidgets('existing profile skips onboarding into the shell',

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../i18n/app_localizations.dart';
+
 /// Friendly empty/error state with an optional action.
 class EmptyState extends StatelessWidget {
   const EmptyState({
@@ -39,10 +41,10 @@ class EmptyState extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-            Text(title, style: theme.textTheme.titleMedium),
+            Text(context.tr(title), style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
             Text(
-              message,
+              context.tr(message),
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
@@ -52,7 +54,7 @@ class EmptyState extends StatelessWidget {
               const SizedBox(height: 20),
               FilledButton.tonal(
                 onPressed: onAction,
-                child: Text(actionLabel!),
+                child: Text(context.tr(actionLabel!)),
               ),
             ],
           ],

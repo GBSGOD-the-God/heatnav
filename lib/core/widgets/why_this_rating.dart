@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../domain/risk/risk_factor.dart';
+import '../i18n/app_localizations.dart';
 
 /// The transparency feature: renders the exact factor list produced by the
 /// risk engine. Used by Home, plan analysis and the calendar day sheet.
@@ -26,7 +27,7 @@ class WhyThisRating extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              'Why this rating?',
+              context.tr('Why this rating?'),
               style: theme.textTheme.titleSmall?.copyWith(
                 color: theme.colorScheme.primary,
               ),
