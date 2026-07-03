@@ -9,7 +9,7 @@ Built for the *Smart World – Innovate for the Future* competition.
 
 | Feature | In one line |
 |---|---|
-| **Personal heat profile** | 90-second onboarding: age, occupation, outdoor hours, health factors (device-only), home cooling situation. |
+| **Personal heat profile** | 90-second onboarding: exact location (GPS, worldwide search, or quick-pick city), age, occupation, outdoor hours, health factors (device-only), home cooling situation. |
 | **Today dashboard** | Personalized risk band (green→red), feels-like hero, 24-h chart, high-risk-hours strip, tailored tips, community alerts, emergency button. |
 | **Plan My Day** ⭐ | Enter "cricket, 2–4 PM" → verdict for *you*, the *why*, a safer departure window, and a reasoned preparation checklist. |
 | **Why this rating?** ⭐ | Every verdict expands into the exact factors that produced it, each with its scientific source. No black boxes, no invented percentages. |
@@ -31,7 +31,9 @@ Built for the *Smart World – Innovate for the Future* competition.
   no home cooling) from **WHO/CDC heat-health guidance** — each can raise the band
   one step and is always named in the "Why this rating?" panel.
 - Where real data doesn't exist yet (route shade %, seeded community reports), the UI
-  says **"sample / demo dataset"** instead of pretending.
+  says **"sample / demo dataset"** instead of pretending. The sample community feed is
+  randomized (description, distance, age, votes) from a seed tied to date + location, so
+  it looks alive and differs city to city instead of reading like a fixed demo script.
 
 ## Tech
 

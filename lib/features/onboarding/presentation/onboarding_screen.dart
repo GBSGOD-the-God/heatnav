@@ -7,6 +7,7 @@ import '../../../core/domain/place.dart';
 import '../../../core/domain/profile/user_profile.dart';
 import '../../../core/widgets/choice_chip_group.dart';
 import '../../profile/presentation/profile_controller.dart';
+import 'location_picker.dart';
 
 /// Five-step onboarding: story → location → about you → health (optional) →
 /// home & cooling. Target: under 90 seconds, everything editable later.
@@ -331,30 +332,22 @@ class _LocationStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return _StepScaffold(
       title: 'Where do you live?',
       subtitle: 'Forecasts, community reports and routes are built around '
-          'your home city.',
+          'your exact location — use GPS, search any address, or pick a '
+          'city below.',
       children: [
-        for (final city in PilotCities.all)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: _SelectableTile(
-              selected: city == selected,
-              leading: Icons.location_city,
-              title: city.label,
-              onTap: () => onSelected(city),
-            ),
+        if (selected != null) ...[
+          _SelectableTile(
+            selected: true,
+            leading: Icons.location_on,
+            title: selected!.label,
+            onTap: () {},
           ),
-        const SizedBox(height: 8),
-        Text(
-          'GPS detection and exact-address pinning arrive with the map '
-          'release; the pilot launches city-by-city.',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
+          const SizedBox(height: 16),
+        ],
+        LocationPickerBody(selected: selected, onSelected: onSelected),
       ],
     );
   }

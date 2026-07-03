@@ -5,6 +5,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/domain/profile/user_profile.dart';
 import '../../../core/widgets/choice_chip_group.dart';
 import '../../../core/widgets/section_header.dart';
+import '../../onboarding/presentation/location_picker.dart';
 import 'profile_controller.dart';
 import 'settings_controller.dart';
 
@@ -45,6 +46,20 @@ class ProfileScreen extends ConsumerWidget {
             ),
           ),
           const SectionHeader('Your heat profile'),
+          _EditableRow(
+            icon: Icons.location_on_outlined,
+            label: 'Home location',
+            value: profile.home.label,
+            onTap: () async {
+              final place = await showLocationPicker(
+                context,
+                initial: profile.home,
+              );
+              if (place != null) {
+                notifier.update((p) => p.copyWith(home: place));
+              }
+            },
+          ),
           _EditableRow(
             icon: Icons.cake_outlined,
             label: 'Age group',

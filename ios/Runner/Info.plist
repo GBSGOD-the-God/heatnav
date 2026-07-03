@@ -45,5 +45,7 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>HeatNav uses your location to show accurate heat risk, forecasts and community reports for exactly where you are.</string>
 </dict>
 </plist>
