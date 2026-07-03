@@ -16,8 +16,12 @@ Future<void> _pumpApp(WidgetTester tester) async {
       child: const HeatNavApp(),
     ),
   );
-  // Fixed-duration pumps: skeleton/entrance animations repeat, so
-  // pumpAndSettle would never settle.
+  // The app opens on the splash screen, which routes onward after ~1.9s.
+  // Advance past that timer, then let the destination build. Fixed-duration
+  // pumps because skeleton/entrance animations repeat, so pumpAndSettle
+  // would never settle.
+  await tester.pump(const Duration(milliseconds: 100));
+  await tester.pump(const Duration(seconds: 2));
   await tester.pump(const Duration(milliseconds: 700));
 }
 

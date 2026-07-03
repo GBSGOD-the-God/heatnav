@@ -17,9 +17,11 @@ import '../../features/profile/presentation/profile_controller.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/recovery/presentation/recovery_screen.dart';
 import '../../features/routes/presentation/heat_routes_screen.dart';
+import '../../features/splash/presentation/splash_screen.dart';
 import 'app_shell.dart';
 
 abstract final class AppRoutes {
+  static const splash = '/';
   static const onboarding = '/onboarding';
   static const home = '/home';
   static const plans = '/plans';
@@ -44,14 +46,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   );
 
   return GoRouter(
-    initialLocation: AppRoutes.home,
+    initialLocation: AppRoutes.splash,
     redirect: (context, state) {
+      // The splash screen routes itself onward; never redirect away from it.
+      if (state.matchedLocation == AppRoutes.splash) return null;
       final onboarding = state.matchedLocation == AppRoutes.onboarding;
       if (!hasProfile && !onboarding) return AppRoutes.onboarding;
       if (hasProfile && onboarding) return AppRoutes.home;
       return null;
     },
     routes: [
+      GoRoute(
+        path: AppRoutes.splash,
+        builder: (context, state) => const SplashScreen(),
+      ),
       GoRoute(
         path: AppRoutes.onboarding,
         builder: (context, state) => const OnboardingScreen(),
