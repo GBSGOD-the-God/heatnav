@@ -47,8 +47,9 @@ Firestore sync, Google Maps tiles and live route intelligence are documented in
 
 ```bash
 flutter pub get
-flutter run          # any Android/iOS device or emulator — no API keys needed
-flutter test         # risk-engine science tests + app smoke tests
+flutter run -d chrome   # easiest: runs in the browser, no phone/emulator needed
+flutter run             # or any Android/iOS device or emulator — no API keys needed
+flutter test            # risk-engine science tests + app smoke tests
 ```
 
 ## Repository guide
