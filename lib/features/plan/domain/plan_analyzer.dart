@@ -187,16 +187,18 @@ abstract final class PlanAnalyzer {
   ) {
     final items = <ChecklistItem>[];
     final level = assessment.level;
-    final hours = (plan.durationMinutes / 60).ceil().clamp(1, 12);
 
     if (level >= RiskLevel.yellow) {
-      // CDC/NIOSH guidance: ~1 cup (250 ml) every 15–20 min of work in heat,
-      // i.e. roughly 750 ml–1 L per active hour. We round to bottles.
-      final litres = plan.activity.exertion == ExertionLevel.heavy
-          ? hours
-          : (hours * 0.5).ceil();
+      // Deliberately qualitative, not a precise litre count: how much a person
+      // actually needs varies with body, pace and sweat. We give an honest
+      // "carry more than enough + drink on a schedule" rather than fake
+      // precision. The schedule itself is the citable CDC guidance.
+      final longOrHard = plan.durationMinutes >= 90 ||
+          plan.activity.exertion == ExertionLevel.heavy;
       items.add(ChecklistItem(
-        label: 'Carry ~$litres L of water',
+        label: longOrHard
+            ? 'Carry plenty of water — more than you think you\'ll need'
+            : 'Carry water and sip regularly',
         reason: 'CDC guidance: about a cup every 15–20 minutes in the heat. '
             'Thirst lags dehydration — drink on schedule, not on thirst.',
         icon: Icons.water_drop,
