@@ -62,7 +62,7 @@ class DemoRouteRepository implements RouteIntelligenceRepository {
           tempDeltaC: -3,
           points: _line(start, end, bulge: 0.35),
           highlights: const [
-            'Passes 2 community water stations',
+            'Passes community water points',
             'Runs along the park edge',
             'Community-reported shade for most of the way',
           ],

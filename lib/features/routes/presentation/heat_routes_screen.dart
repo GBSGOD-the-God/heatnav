@@ -74,8 +74,9 @@ class _HeatRoutesScreenState extends ConsumerState<HeatRoutesScreen> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Pilot-city demo dataset. Live shade computation plugs '
-                      'in behind this same screen.',
+                      'Illustrative comparison. Times are estimates and shade '
+                      'is relative, not measured — live routing & shade data '
+                      'plug in behind this same screen.',
                       style: theme.textTheme.labelMedium,
                     ),
                   ),
@@ -225,17 +226,15 @@ class _RouteCard extends StatelessWidget {
                 children: [
                   _Metric(
                     icon: Icons.park_outlined,
-                    text: '${option.shadePercent}% shaded',
+                    text: option.shadeLabel,
                   ),
                   _Metric(
                     icon: Icons.water_drop_outlined,
-                    text: '${option.waterStops} water',
+                    text: option.waterLabel,
                   ),
                   _Metric(
                     icon: Icons.thermostat,
-                    text: option.tempDeltaC == 0
-                        ? 'baseline'
-                        : '${option.tempDeltaC.toStringAsFixed(0)}°C cooler',
+                    text: option.coolnessLabel,
                   ),
                 ],
               ),

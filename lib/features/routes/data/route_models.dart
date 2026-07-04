@@ -36,6 +36,22 @@ class RouteOption {
   final double tempDeltaC;
   final List<LatLng> points;
   final List<String> highlights;
+
+  // --- Qualitative labels ------------------------------------------------
+  // The UI shows these words, never the raw numbers above. Without real
+  // per-street shade/temperature data we can't honestly claim "65% shaded"
+  // or "3°C cooler"; a relative ranking ("more shade", "feels cooler") is
+  // all we can defend, so that's all we display.
+
+  String get shadeLabel {
+    if (shadePercent >= 70) return 'Most shade';
+    if (shadePercent >= 40) return 'More shade';
+    return 'Little shade';
+  }
+
+  String get waterLabel => waterStops > 0 ? 'Water on route' : 'No water';
+
+  String get coolnessLabel => tempDeltaC < 0 ? 'Feels cooler' : 'Baseline';
 }
 
 class RouteComparison {

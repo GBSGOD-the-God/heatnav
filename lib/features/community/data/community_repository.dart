@@ -216,7 +216,7 @@ class CommunityRepository {
     ReportCategory.shade: [
       'Tree-lined lane behind the market — noticeably cooler than the main road.',
       'Covered walkway by the shops blocks the sun almost all day.',
-      'Park path under old banyan trees, easily 5 degrees cooler in here.',
+      'Park path under old banyan trees, noticeably cooler in here.',
       'Building overhangs create a shaded stretch good for a break.',
     ],
     ReportCategory.coolingCentre: [
