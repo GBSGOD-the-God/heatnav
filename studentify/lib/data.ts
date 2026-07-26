@@ -115,38 +115,101 @@ export type QuizQ = {
   options: string[];
   answer: number;
   explain: string;
+  subject?: string;
+  topic?: string;
 };
 
 export const quizBank: QuizQ[] = [
+  {
+    q: "The value of the discriminant for x² + 4x + 4 = 0 is:",
+    options: ["16", "0", "8", "−16"],
+    answer: 1,
+    explain: "D = b² − 4ac = 16 − 16 = 0, so the equation has two equal real roots (x = −2).",
+    subject: "Maths", topic: "quadratics",
+  },
+  {
+    q: "sin 30° + cos 60° equals:",
+    options: ["1", "1/2", "√3/2", "2"],
+    answer: 0,
+    explain: "sin 30° = 1/2 and cos 60° = 1/2, so the sum is 1.",
+    subject: "Maths", topic: "trigonometry",
+  },
+  {
+    q: "The SI unit of electric current is the:",
+    options: ["Volt", "Ohm", "Ampere", "Coulomb"],
+    answer: 2,
+    explain: "Current is measured in amperes (A). Volts measure potential difference, ohms resistance, coulombs charge.",
+    subject: "Physics", topic: "electricity",
+  },
+  {
+    q: "Which mirror is used as a rear-view mirror in vehicles?",
+    options: ["Plane", "Concave", "Convex", "Parabolic"],
+    answer: 2,
+    explain: "Convex mirrors always form erect, diminished images and give a wide field of view — ideal for rear-view mirrors.",
+    subject: "Physics", topic: "optics",
+  },
+  {
+    q: "The pH of a neutral solution at 25°C is:",
+    options: ["0", "7", "14", "1"],
+    answer: 1,
+    explain: "Pure water at 25°C has equal H⁺ and OH⁻ concentrations, giving pH 7 — the neutral point of the scale.",
+    subject: "Chemistry", topic: "acids and bases",
+  },
+  {
+    q: "Which of these is a saturated hydrocarbon?",
+    options: ["Ethene", "Ethyne", "Ethane", "Benzene"],
+    answer: 2,
+    explain: "Ethane (C₂H₆) has only single C–C bonds → saturated (an alkane). Ethene and ethyne have double/triple bonds.",
+    subject: "Chemistry", topic: "carbon compounds",
+  },
+  {
+    q: "The powerhouse of the cell is the:",
+    options: ["Nucleus", "Ribosome", "Mitochondrion", "Golgi body"],
+    answer: 2,
+    explain: "Mitochondria carry out cellular respiration, releasing energy stored in glucose as ATP.",
+    subject: "Biology", topic: "cell biology",
+  },
+  {
+    q: "In photosynthesis, oxygen is released from the splitting of:",
+    options: ["Carbon dioxide", "Glucose", "Water", "Chlorophyll"],
+    answer: 2,
+    explain: "The light reaction splits water (photolysis): 2H₂O → 4H⁺ + 4e⁻ + O₂. The O₂ we breathe comes from water, not CO₂.",
+    subject: "Biology", topic: "photosynthesis",
+  },
   {
     q: "The roots of x² − 5x + 6 = 0 are:",
     options: ["2 and 3", "−2 and −3", "1 and 6", "−1 and −6"],
     answer: 0,
     explain: "Factorise: x² − 5x + 6 = (x − 2)(x − 3). Setting each factor to zero gives x = 2 and x = 3.",
+    subject: "Maths", topic: "quadratics",
   },
   {
     q: "A concave mirror always forms a virtual image when the object is placed:",
     options: ["At the centre of curvature", "Beyond C", "Between the pole and focus", "At the focus"],
     answer: 2,
     explain: "Between P and F the reflected rays diverge, so they appear to meet behind the mirror — a virtual, erect, magnified image.",
+    subject: "Physics", topic: "optics",
   },
   {
     q: "Which of these is the functional group of carboxylic acids?",
     options: ["–OH", "–CHO", "–COOH", "–CO–"],
     answer: 2,
     explain: "–COOH (carboxyl) defines carboxylic acids, e.g. ethanoic acid CH₃COOH. –OH is alcohols, –CHO aldehydes, –CO– ketones.",
+    subject: "Chemistry", topic: "carbon compounds",
   },
   {
     q: "If sin θ = 3/5, then cos θ equals:",
     options: ["4/5", "3/4", "5/4", "5/3"],
     answer: 0,
     explain: "Using sin²θ + cos²θ = 1: cos²θ = 1 − 9/25 = 16/25, so cos θ = 4/5 (taking θ acute).",
+    subject: "Maths", topic: "trigonometry",
   },
   {
     q: "Ohm's law states that V equals:",
     options: ["I/R", "I × R", "R/I", "I² × R"],
     answer: 1,
     explain: "V = IR — potential difference is directly proportional to current, with resistance R as the constant of proportionality.",
+    subject: "Physics", topic: "electricity",
   },
 ];
 

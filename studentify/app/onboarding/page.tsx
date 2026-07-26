@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import AuthShell from "@/components/AuthShell";
+import { useApp } from "@/lib/store";
 
 const classes = ["Class 6", "Class 7", "Class 8", "Class 9", "Class 10", "Class 11", "Class 12"];
 const boards = ["CBSE", "ICSE / ISC", "State Board", "IGCSE", "IB"];
@@ -37,10 +38,30 @@ function Chip({
 
 export default function Onboarding() {
   const router = useRouter();
+  const { update } = useApp();
   const [step, setStep] = useState(0);
   const [grade, setGrade] = useState<string | null>(null);
   const [board, setBoard] = useState<string | null>(null);
   const [subs, setSubs] = useState<string[]>([]);
+
+  function finish() {
+    let draft = { name: "Student", email: "" };
+    try {
+      draft = { ...draft, ...JSON.parse(sessionStorage.getItem("studentify:draft") ?? "{}") };
+    } catch {}
+    update((s) => ({
+      ...s,
+      profile: {
+        name: draft.name.split(" ")[0] || "Student",
+        email: draft.email,
+        grade: grade!,
+        board: board!,
+        subjects: subs,
+        createdAt: Date.now(),
+      },
+    }));
+    router.push("/dashboard");
+  }
 
   const steps = [
     {
@@ -122,7 +143,7 @@ export default function Onboarding() {
         <button
           type="button"
           disabled={!current.done}
-          onClick={() => (last ? router.push("/dashboard") : setStep((s) => s + 1))}
+          onClick={() => (last ? finish() : setStep((s) => s + 1))}
           className="btn-glow rounded-xl px-7 py-3 text-sm font-semibold disabled:opacity-40 disabled:pointer-events-none"
         >
           {last ? "Enter Studentify →" : "Continue"}

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Logo from "@/components/Logo";
-import { student } from "@/lib/data";
+import { levelFromXp, useApp } from "@/lib/store";
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", emoji: "🏠" },
@@ -18,6 +18,8 @@ const nav = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { state } = useApp();
+  const { level, progress, toNext } = levelFromXp(state.xp);
 
   return (
     <>
@@ -50,17 +52,17 @@ export default function Sidebar() {
         <div className="p-4">
           <div className="card rounded-2xl p-4">
             <div className="flex items-center justify-between text-xs text-sub">
-              <span>Level {student.level}</span>
-              <span>{student.xp.toLocaleString()} XP</span>
+              <span>Level {level}</span>
+              <span>{state.xp.toLocaleString()} XP</span>
             </div>
             <div className="mt-2.5 h-2 rounded-full bg-edge overflow-hidden">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-primary to-accent"
-                style={{ width: `${student.levelProgress * 100}%` }}
+                className="h-full rounded-full bg-gradient-to-r from-primary to-accent transition-all duration-700"
+                style={{ width: `${progress * 100}%` }}
               />
             </div>
             <div className="mt-2 text-[10px] text-faint">
-              {Math.round((1 - student.levelProgress) * 1000)} XP to Level {student.level + 1}
+              {toNext} XP to Level {level + 1}
             </div>
           </div>
         </div>

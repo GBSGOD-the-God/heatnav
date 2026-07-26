@@ -1,6 +1,8 @@
 import Link from "next/link";
+import Counter from "@/components/Counter";
 import Logo from "@/components/Logo";
 import Reveal from "@/components/Reveal";
+import Spotlight from "@/components/Spotlight";
 
 const features = [
   {
@@ -203,6 +205,7 @@ export default function Landing() {
       {/* hero */}
       <section className="relative pt-36 sm:pt-44 pb-20 px-4">
         <div className="hero-grid absolute inset-0" aria-hidden />
+        <Spotlight />
         <div className="relative mx-auto max-w-4xl text-center">
           <div className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-edge bg-card/60 px-4 py-1.5 text-xs text-sub mb-7">
             <span className="size-1.5 rounded-full bg-mint animate-pulse-glow" />
@@ -253,19 +256,52 @@ export default function Landing() {
         {/* stats strip */}
         <Reveal className="mx-auto mt-14 max-w-3xl">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {[
-              ["50K+", "students learning"],
-              ["1.2M", "doubts solved"],
-              ["4.9★", "average rating"],
-              ["93%", "improved grades"],
-            ].map(([n, l]) => (
-              <div key={l} className="card rounded-xl px-4 py-5 text-center">
-                <div className="text-2xl font-bold text-gradient-brand">{n}</div>
-                <div className="mt-1 text-xs text-sub">{l}</div>
+            <div className="card rounded-xl px-4 py-5 text-center">
+              <div className="text-2xl font-bold text-gradient-brand">
+                <Counter value={50} suffix="K+" />
               </div>
-            ))}
+              <div className="mt-1 text-xs text-sub">students learning</div>
+            </div>
+            <div className="card rounded-xl px-4 py-5 text-center">
+              <div className="text-2xl font-bold text-gradient-brand">
+                <Counter value={1.2} suffix="M" decimals={1} />
+              </div>
+              <div className="mt-1 text-xs text-sub">doubts solved</div>
+            </div>
+            <div className="card rounded-xl px-4 py-5 text-center">
+              <div className="text-2xl font-bold text-gradient-brand">
+                <Counter value={4.9} suffix="★" decimals={1} />
+              </div>
+              <div className="mt-1 text-xs text-sub">average rating</div>
+            </div>
+            <div className="card rounded-xl px-4 py-5 text-center">
+              <div className="text-2xl font-bold text-gradient-brand">
+                <Counter value={93} suffix="%" />
+              </div>
+              <div className="mt-1 text-xs text-sub">improved grades</div>
+            </div>
           </div>
         </Reveal>
+
+        {/* subject marquee */}
+        <div className="mt-14 overflow-hidden [mask-image:linear-gradient(90deg,transparent,#000_15%,#000_85%,transparent)]">
+          <div className="marquee flex w-max gap-3">
+            {[...Array(2)].map((_, dup) =>
+              [
+                "📐 Maths", "🔭 Physics", "⚗️ Chemistry", "🧬 Biology", "📖 English",
+                "🌏 Geography", "🏛️ History", "💻 Computer Science", "📊 Economics",
+                "🗣️ Hindi", "🎨 Art", "⚖️ Civics",
+              ].map((s) => (
+                <span
+                  key={dup + s}
+                  className="shrink-0 rounded-full border border-edge bg-card/70 px-5 py-2.5 text-sm text-sub"
+                >
+                  {s}
+                </span>
+              ))
+            )}
+          </div>
+        </div>
       </section>
 
       {/* features */}

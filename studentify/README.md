@@ -2,10 +2,10 @@
 
 > **Learn Smarter. Not Harder.**
 
-Studentify is an AI-powered learning platform for school students (ages ~11–18) — a
-personal tutor available 24/7, built around **understanding before answers**. Instead of
-juggling five apps, students get one place to ask doubts, upload notes, generate
-flashcards and quizzes, plan revision and track progress.
+An AI-powered learning platform for school students (~11–18) — a personal tutor built
+around **understanding before answers**. This is a **fully working app**: everything you
+do (notes, flashcard reviews, quizzes, planner blocks, tutor chats) is real, persisted,
+and feeds your streak, XP, weak areas and progress charts.
 
 ## Running locally
 
@@ -13,46 +13,71 @@ flashcards and quizzes, plan revision and track progress.
 cd studentify
 npm install
 npm run dev        # http://localhost:3000
-npm run build      # production build (all routes prerender statically)
 ```
 
-## What's implemented
+No configuration needed — it's local-first and works completely offline (cold start:
+sign up → onboarding → empty workspace, or load sample content from the dashboard).
 
-| Route | Feature |
-| --- | --- |
-| `/` | Landing page — hero with animated background, live product mock, features, AI-modes showcase, dashboard preview, testimonials, pricing, FAQ, CTA, footer |
-| `/signup`, `/login`, `/forgot-password` | Auth UI (Google + email/password, reset flow) |
-| `/onboarding` | 3-step profile setup — class, board, subjects |
-| `/dashboard` | Greeting, streak, weekly activity chart, upcoming tasks, continue-learning, quick AI chat |
-| `/tutor` | AI Tutor chat with **six modes** (Homework, Exam, Quick Doubt, Teach Me, Revision, Challenge Me), typing indicator, and the signature *"hint first, solution second"* flow |
-| `/notes` | Folders, tags, search, markdown editing with live preview, auto-save indicator, AI actions (summarise / flashcards / quiz) |
-| `/flashcards` | Decks, daily-goal progress ring, 3D flip study view, Hard/Good/Easy spaced-repetition ratings, XP rewards |
-| `/quiz` | Quiz generator (source + difficulty), per-question 45s timer, instant scoring, AI explanation after every question, animated results ring |
-| `/planner` | Weekly schedule built from exam dates & study hours, block types, missed-task recovery |
-| `/progress` | Study-hours line chart, quiz accuracy by subject, weak areas, level ring, streaks, achievement badges |
-| `/settings` | Theme, language, AI response length, AI memory (view/reset), notifications, export data, delete account |
+### Optional: full AI answers via Mistral
 
-Design system: dark-first, near-black background, deep blue → purple gradients,
-glassmorphism panels, rounded corners, scroll-reveal and 60fps CSS animations,
-`prefers-reduced-motion` support, fully responsive (desktop sidebar → mobile bottom nav).
+Two ways, either works:
 
-## Tech stack
+- Paste a key in **Settings → AI → Mistral API key** (stored only in the browser), or
+- Set `MISTRAL_API_KEY` as an environment variable on the server/Vercel.
 
-- **Next.js 15** (App Router) + **React 19** + **TypeScript**
-- **Tailwind CSS v4** with a custom `@theme` design-token system (no other runtime deps —
-  charts are hand-rolled SVG, animations are pure CSS)
-- Deploys anywhere Next.js runs; **Vercel** is the intended target
+With a key, `/api/tutor` proxies to Mistral (`mistral-small-latest`) with a system
+prompt built from the student's grade, board, subjects, AI memory, chosen mode and
+response-length setting. Without one, the built-in **local engine** takes over — it
+genuinely solves quadratic equations and arithmetic step-by-step, and runs structured
+coaching for all six modes.
 
-## Wiring up the backend (next steps)
+## What's real
 
-The UI is complete and runs on realistic demo data from `lib/data.ts`. To make it live,
-per the product spec:
+- **Accounts & onboarding** — profile (name, class, board, subjects) stored locally;
+  app routes are guarded and redirect to signup when no profile exists.
+- **AI Tutor** — six modes (Homework, Exam, Quick Doubt, Teach Me, Revision,
+  Challenge Me), hint-before-solution flow (taking the hint earns bonus XP), persisted
+  chat sessions, AI memory (viewable/resettable in Settings), Mistral or local engine.
+- **Notes** — create/edit/delete with markdown preview, auto-save, folders, tags,
+  search, and `.txt`/`.md` import.
+- **Flashcards** — create decks by hand or **auto-generate from any note**; SM-2-lite
+  spaced repetition (Hard → 1 day, Good → ~2.2×, Easy → ~3.2×) with real due dates;
+  daily review goal ring; confetti on completion.
+- **Quiz** — generated from a subject-tagged question bank **or from your own
+  flashcards** (distractors sampled from other cards); difficulty sets the per-question
+  timer (60/45/30s); instant scoring with explanations; every result recorded and
+  missed topics tracked as weak areas.
+- **Planner** — add exams and daily study hours; the generator builds a 7-day schedule
+  that prioritises weak subjects (from your quiz history) and ramps revision as exams
+  approach; ticking a block logs study time and XP.
+- **Progress** — study-hours chart (4 weeks), per-subject quiz accuracy, weak areas
+  with one-click "revise with AI", level ring, streak, achievement badges — all
+  computed from the activity log.
+- **Gamification** — XP for every learning action, levels (1000 XP each), daily
+  streaks, badges with real unlock conditions.
+- **Global search (⌘K)** — command palette over pages, notes, decks, chats and quizzes.
+- **Settings** — light/dark theme (applies instantly, persisted, no flash on load),
+  language, AI response length, hints toggle, memory view/reset, notification prefs,
+  **JSON data export**, delete account.
 
-1. **Supabase** — Auth (Google + email/password with verification), Postgres for
-   profiles, notes, decks, quiz history and planner tasks, Storage for PDF uploads.
-   Swap the demo data module for Supabase queries in server components.
-2. **Mistral API** — back the `/tutor` chat (`aiReply()` in `app/(app)/tutor/page.tsx`
-   is the single seam to replace with a streaming route handler), plus PDF
-   summarisation, flashcard and quiz generation.
-3. **AI memory** — persist learning style / weak areas per user and inject into the
-   system prompt; the Settings page already exposes view/reset controls.
+## Design
+
+Dark-first with a full light theme, self-hosted Inter variable font (no external
+requests), blue→purple gradient system, glassmorphism, scroll reveals, page
+transitions, mouse-follow hero spotlight, animated counters, marquee, confetti — all
+pure CSS/SVG at 60fps, `prefers-reduced-motion` respected, responsive from phone to
+desktop (sidebar ⇄ bottom nav).
+
+## Stack & architecture
+
+- **Next.js 15** (App Router) + **React 19** + **TypeScript** + **Tailwind CSS v4**
+- Zero runtime deps beyond React/Next — charts are hand-rolled SVG
+- `lib/store.tsx` — local-first state (React context + `localStorage`), including the
+  SRS scheduler, streak/level math, badge conditions and the planner generator
+- `lib/engine.ts` — offline tutor engine (equation parser/solver + mode coaching)
+- `app/api/tutor/route.ts` — Mistral chat proxy (server env key or per-user key)
+
+### Scaling up later
+
+The store is a single seam: swap `localStorage` for Supabase (Auth + Postgres +
+Storage) to get sync across devices — the shapes in `lib/store.tsx` map 1:1 to tables.
