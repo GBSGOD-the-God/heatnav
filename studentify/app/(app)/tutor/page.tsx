@@ -4,6 +4,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { aiModes, type Mode } from "@/lib/data";
 import { localReply } from "@/lib/engine";
+import { askMistral } from "@/lib/mistral";
 import { uid, useApp, type ChatMsg } from "@/lib/store";
 
 function TutorInner() {
@@ -73,27 +74,17 @@ function TutorInner() {
 
   async function getAiResponse(history: ChatMsg[], userText: string): Promise<ChatMsg> {
     if (key) {
-      try {
-        const res = await fetch("/api/tutor", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "x-mistral-key": key },
-          body: JSON.stringify({
-            messages: history,
-            mode: mode.id,
-            profile: state.profile,
-            memory: state.settings.memoryOn ? state.memory : [],
-            length: state.settings.responseLength,
-          }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.text) {
-            setUsedMistral(true);
-            return { role: "ai", text: data.text };
-          }
-        }
-      } catch {
-        /* fall through to local engine */
+      const text = await askMistral({
+        key,
+        messages: history,
+        mode: mode.id,
+        profile: state.profile,
+        memory: state.settings.memoryOn ? state.memory : [],
+        length: state.settings.responseLength,
+      });
+      if (text) {
+        setUsedMistral(true);
+        return { role: "ai", text };
       }
     }
     setUsedMistral(false);

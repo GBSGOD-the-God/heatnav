@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { ChatMsg, Profile } from "@/lib/store";
 
-export const runtime = "nodejs";
+/** Direct browser → Mistral call (static hosting has no server to proxy through).
+ *  The key is the user's own, stored locally, and goes only to api.mistral.ai. */
 
 const MODE_PROMPTS: Record<string, string> = {
   homework:
@@ -15,26 +16,15 @@ const MODE_PROMPTS: Record<string, string> = {
     "Challenge Me: pose or answer questions one level above the student's grade. Be encouraging but do not dumb it down.",
 };
 
-export async function POST(req: NextRequest) {
-  let body: {
-    messages?: { role: string; text: string }[];
-    mode?: string;
-    profile?: { name?: string; grade?: string; board?: string; subjects?: string[] };
-    memory?: string[];
-    length?: string;
-  };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "bad request" }, { status: 400 });
-  }
-
-  const key = process.env.MISTRAL_API_KEY || req.headers.get("x-mistral-key") || "";
-  if (!key) {
-    return NextResponse.json({ error: "no-key" }, { status: 503 });
-  }
-
-  const { messages = [], mode = "homework", profile, memory = [], length = "balanced" } = body;
+export async function askMistral(opts: {
+  key: string;
+  messages: ChatMsg[];
+  mode: string;
+  profile: Profile | null;
+  memory: string[];
+  length: string;
+}): Promise<string | null> {
+  const { key, messages, mode, profile, memory, length } = opts;
   const lengthRule =
     length === "short"
       ? "Keep answers under 120 words."
@@ -45,7 +35,7 @@ export async function POST(req: NextRequest) {
   const system = [
     "You are Studentify, a warm, encouraging AI tutor for school students. Learning comes before answers: prefer guiding over telling. Use simple language, concrete examples and analogies. Use light structure (numbered steps, short paragraphs). Never be condescending.",
     profile?.grade
-      ? `Student: ${profile.name ?? "a student"}, ${profile.grade}, ${profile.board ?? ""}. Adapt depth and vocabulary to this level. Subjects: ${(profile.subjects ?? []).join(", ")}.`
+      ? `Student: ${profile.name}, ${profile.grade}, ${profile.board}. Adapt depth and vocabulary to this level. Subjects: ${profile.subjects.join(", ")}.`
       : "",
     MODE_PROMPTS[mode] ?? MODE_PROMPTS.homework,
     memory.length ? `What you remember about this student: ${memory.join("; ")}.` : "",
@@ -68,23 +58,16 @@ export async function POST(req: NextRequest) {
         messages: [
           { role: "system", content: system },
           ...messages.slice(-16).map((m) => ({
-            role: m.role === "ai" ? "assistant" : "user",
+            role: m.role === "ai" ? ("assistant" as const) : ("user" as const),
             content: m.text,
           })),
         ],
       }),
     });
-    if (!res.ok) {
-      const detail = await res.text();
-      return NextResponse.json(
-        { error: "mistral-error", detail: detail.slice(0, 300) },
-        { status: 502 }
-      );
-    }
+    if (!res.ok) return null;
     const data = await res.json();
-    const text: string = data?.choices?.[0]?.message?.content ?? "";
-    return NextResponse.json({ text });
+    return data?.choices?.[0]?.message?.content ?? null;
   } catch {
-    return NextResponse.json({ error: "network" }, { status: 502 });
+    return null;
   }
 }
