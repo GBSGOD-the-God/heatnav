@@ -46,24 +46,21 @@ const modes = [
   ["🔥", "Challenge Me"],
 ];
 
-const testimonials = [
+const principles = [
   {
-    quote:
-      "It never just gives me the answer — it asks if I want a hint first. My maths actually improved because I finally understand the steps.",
-    name: "Ananya S.",
-    role: "Class 10, CBSE",
+    emoji: "💡",
+    title: "Hints before answers",
+    desc: "Copying an answer teaches nothing. The tutor offers a hint first and even rewards taking it with bonus XP — because the struggle is where learning happens.",
   },
   {
-    quote:
-      "I uploaded my physics notes the night before a test and got a summary, 30 flashcards and a quiz in under a minute. Unreal.",
-    name: "Rohan M.",
-    role: "Class 12, ISC",
+    emoji: "🔁",
+    title: "Spaced repetition, for real",
+    desc: "Flashcards come back exactly when you'd start forgetting them — cards you find hard return tomorrow, easy ones in a week. That's how memory actually works.",
   },
   {
-    quote:
-      "The streak and XP keep my son revising daily without me nagging. The planner rebuilt itself when he missed two days. Worth it.",
-    name: "Priya K.",
-    role: "Parent of Class 8 student",
+    emoji: "📉",
+    title: "Your mistakes become your plan",
+    desc: "Every quiz question you miss is tracked as a weak area, and the study planner automatically gives those topics more time before your exams.",
   },
 ];
 
@@ -253,32 +250,28 @@ export default function Landing() {
           <HeroMock />
         </Reveal>
 
-        {/* stats strip */}
+        {/* facts strip — real product facts, no invented metrics */}
         <Reveal className="mx-auto mt-14 max-w-3xl">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="card rounded-xl px-4 py-5 text-center">
               <div className="text-2xl font-bold text-gradient-brand">
-                <Counter value={50} suffix="K+" />
+                <Counter value={6} />
               </div>
-              <div className="mt-1 text-xs text-sub">students learning</div>
+              <div className="mt-1 text-xs text-sub">AI tutor modes</div>
+            </div>
+            <div className="card rounded-xl px-4 py-5 text-center">
+              <div className="text-2xl font-bold text-gradient-brand">100%</div>
+              <div className="mt-1 text-xs text-sub">free while in beta</div>
             </div>
             <div className="card rounded-xl px-4 py-5 text-center">
               <div className="text-2xl font-bold text-gradient-brand">
-                <Counter value={1.2} suffix="M" decimals={1} />
+                <Counter value={0} />
               </div>
-              <div className="mt-1 text-xs text-sub">doubts solved</div>
+              <div className="mt-1 text-xs text-sub">ads or tracking</div>
             </div>
             <div className="card rounded-xl px-4 py-5 text-center">
-              <div className="text-2xl font-bold text-gradient-brand">
-                <Counter value={4.9} suffix="★" decimals={1} />
-              </div>
-              <div className="mt-1 text-xs text-sub">average rating</div>
-            </div>
-            <div className="card rounded-xl px-4 py-5 text-center">
-              <div className="text-2xl font-bold text-gradient-brand">
-                <Counter value={93} suffix="%" />
-              </div>
-              <div className="mt-1 text-xs text-sub">improved grades</div>
+              <div className="text-2xl font-bold text-gradient-brand">Offline</div>
+              <div className="mt-1 text-xs text-sub">your data stays with you</div>
             </div>
           </div>
         </Reveal>
@@ -434,31 +427,21 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* testimonials */}
+      {/* learning principles */}
       <section className="relative py-20 px-4">
         <div className="mx-auto max-w-6xl">
           <Reveal className="text-center">
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
-              Loved by students <span className="text-gradient-brand">and their parents</span>
+              Built on how learning <span className="text-gradient-brand">actually works</span>
             </h2>
           </Reveal>
           <div className="mt-12 grid md:grid-cols-3 gap-5">
-            {testimonials.map((t, i) => (
-              <Reveal key={t.name} delay={i * 90}>
+            {principles.map((t, i) => (
+              <Reveal key={t.title} delay={i * 90}>
                 <figure className="card card-hover h-full p-7">
-                  <div className="text-amber text-sm tracking-widest">★★★★★</div>
-                  <blockquote className="mt-4 text-sm leading-relaxed text-white/90">
-                    &ldquo;{t.quote}&rdquo;
-                  </blockquote>
-                  <figcaption className="mt-5 flex items-center gap-3">
-                    <span className="size-9 rounded-full bg-gradient-to-br from-primary to-accent grid place-items-center text-xs font-bold">
-                      {t.name[0]}
-                    </span>
-                    <span>
-                      <span className="block text-sm font-semibold">{t.name}</span>
-                      <span className="block text-xs text-faint">{t.role}</span>
-                    </span>
-                  </figcaption>
+                  <div className="text-2xl">{t.emoji}</div>
+                  <h3 className="mt-4 text-lg font-semibold">{t.title}</h3>
+                  <p className="mt-2.5 text-sm leading-relaxed text-sub">{t.desc}</p>
                 </figure>
               </Reveal>
             ))}
@@ -474,6 +457,9 @@ export default function Landing() {
             <h2 className="mt-3 text-3xl sm:text-5xl font-bold tracking-tight">
               Start free, upgrade when ready
             </h2>
+            <p className="mt-4 text-sm text-sub">
+              Planned plans — while Studentify is in beta, <b className="text-white">everything is free</b> for everyone.
+            </p>
           </Reveal>
           <div className="mt-14 grid md:grid-cols-3 gap-5 items-stretch">
             {/* Free */}
@@ -566,7 +552,7 @@ export default function Landing() {
               Your grades will thank you.
             </h2>
             <p className="relative mt-4 text-sub max-w-md mx-auto">
-              Join thousands of students who stopped cramming and started understanding.
+              Stop cramming. Start understanding — one doubt, one card, one quiz at a time.
             </p>
             <Link
               href="/signup"

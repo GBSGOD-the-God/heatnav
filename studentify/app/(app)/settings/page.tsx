@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { api } from "@/lib/api";
 import { useApp, type Settings as S } from "@/lib/store";
 
 function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
@@ -44,7 +45,7 @@ function Row({
 }
 
 export default function SettingsPage() {
-  const { state, update, resetAll } = useApp();
+  const { state, update, resetAll, token, logout } = useApp();
   const router = useRouter();
   const s = state.settings;
   const p = state.profile!;
@@ -65,9 +66,17 @@ export default function SettingsPage() {
     URL.revokeObjectURL(url);
   }
 
-  function deleteAccount() {
-    if (!confirm("Delete your account and ALL data on this device? This cannot be undone.")) return;
+  async function deleteAccount() {
+    const scope = token ? "on this device AND on the server" : "on this device";
+    if (!confirm(`Delete your account and ALL data ${scope}? This cannot be undone.`)) return;
+    if (token) await api.deleteAccount(token);
     resetAll();
+    router.push("/");
+  }
+
+  async function handleLogout() {
+    if (!confirm("Log out? Local data on this device will be cleared (it stays safe in your account on the server).")) return;
+    await logout();
     router.push("/");
   }
 
@@ -230,6 +239,37 @@ export default function SettingsPage() {
         </Row>
       </div>
 
+      {/* account & sync */}
+      <div className="card px-6 py-2">
+        <div className="pt-4 pb-1 text-[11px] font-bold uppercase tracking-widest text-faint">Account & sync</div>
+        <Row
+          title="Sync status"
+          desc={
+            token
+              ? "Logged in — your data auto-saves to your account and follows you across devices."
+              : "Device-only mode — data lives in this browser. Log in to sync it to the server."
+          }
+        >
+          <span
+            className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
+              token ? "border-mint/40 bg-mint/10 text-mint" : "border-edge bg-card2 text-faint"
+            }`}
+          >
+            {token ? "● Synced" : "○ Local only"}
+          </span>
+        </Row>
+        {token && (
+          <Row title="Log out" desc="Sign out on this device. Your account and data stay on the server.">
+            <button
+              onClick={handleLogout}
+              className="rounded-xl border border-edge bg-card2 px-4 py-2 text-xs font-semibold text-sub hover:text-white hover:border-edge2 transition-colors"
+            >
+              Log out
+            </button>
+          </Row>
+        )}
+      </div>
+
       {/* privacy */}
       <div className="card px-6 py-2">
         <div className="pt-4 pb-1 text-[11px] font-bold uppercase tracking-widest text-faint">Privacy & data</div>
@@ -241,7 +281,7 @@ export default function SettingsPage() {
             Export
           </button>
         </Row>
-        <Row title="Delete account" desc="Permanently removes your account and all data on this device.">
+        <Row title="Delete account" desc="Permanently removes your account and all data — from this device and from the server.">
           <button
             onClick={deleteAccount}
             className="rounded-xl border border-rose/40 bg-rose/10 px-4 py-2 text-xs font-semibold text-rose hover:bg-rose/20 transition-colors"

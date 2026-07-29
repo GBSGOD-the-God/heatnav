@@ -77,7 +77,22 @@ desktop (sidebar ⇄ bottom nav).
 - `lib/engine.ts` — offline tutor engine (equation parser/solver + mode coaching)
 - `app/api/tutor/route.ts` — Mistral chat proxy (server env key or per-user key)
 
-### Scaling up later
+## Real backend (PHP + MySQL, e.g. Hostinger web hosting)
 
-The store is a single seam: swap `localStorage` for Supabase (Auth + Postgres +
-Storage) to get sync across devices — the shapes in `lib/store.tsx` map 1:1 to tables.
+`public/api/` contains a self-contained PHP backend that ships inside the same static
+upload. It provides real registration (server-side email validation **with a DNS check
+that the domain can receive mail**), email verification links, hashed-password login,
+Google sign-in (server-verified ID tokens), cross-device data sync, logout and account
+deletion. Tables are created automatically on first use.
+
+Setup on the server (one time):
+
+1. Create a MySQL database + user in your hosting panel.
+2. In `public_html/api/`, create `config.local.php` (template documented at the top of
+   `api/config.php`) with those credentials — this file is never overwritten by
+   re-uploads.
+3. Optional: add a Google OAuth client ID to `config.local.php` to enable the Google
+   button (it stays hidden until configured).
+
+The app remains local-first: with no backend reachable it still works fully on-device,
+and a logged-in user's Mistral key is never synced to the server.

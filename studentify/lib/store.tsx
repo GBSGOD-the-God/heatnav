@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { api, getToken, storeToken } from "@/lib/api";
 
 /* ---------------- types ---------------- */
 
@@ -310,10 +311,14 @@ export function generatePlan(s: AppState): PlanBlock[] {
 type Ctx = {
   state: AppState;
   ready: boolean;
+  token: string | null;
+  syncing: boolean;
   update: (fn: (s: AppState) => AppState) => void;
   addXp: (amount: number, minutes?: number, reviews?: number) => void;
   resetAll: () => void;
   loadSample: () => void;
+  setAuthToken: (t: string | null) => void;
+  logout: () => Promise<void>;
 };
 
 const AppCtx = createContext<Ctx | null>(null);
@@ -321,8 +326,12 @@ const AppCtx = createContext<Ctx | null>(null);
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(EMPTY);
   const [ready, setReady] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
   const stateRef = useRef(state);
   stateRef.current = state;
+  const skipPush = useRef(false);
+  const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     try {
@@ -334,8 +343,59 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } catch {
       /* corrupted storage — start fresh */
     }
+    setToken(getToken());
     setReady(true);
   }, []);
+
+  // Logged in: pull the server copy (it wins when it has a profile).
+  useEffect(() => {
+    if (!ready || !token) return;
+    let cancelled = false;
+    setSyncing(true);
+    api.pullState(token).then((r) => {
+      if (cancelled) return;
+      if (r.ok && r.data.state?.profile) {
+        skipPush.current = true;
+        const server = r.data.state;
+        setState((local) => ({
+          ...EMPTY,
+          ...server,
+          settings: {
+            ...DEFAULT_SETTINGS,
+            ...server.settings,
+            // the Mistral key never leaves this device — keep the local one
+            mistralKey: local.settings.mistralKey,
+          },
+        }));
+      } else if (r.ok && !r.data.state && stateRef.current.profile) {
+        // fresh server account, existing local data → seed the server
+        api.pushState(token, stateRef.current);
+      } else if (!r.ok && r.error === "unauthorized") {
+        storeToken(null);
+        setToken(null);
+      }
+      setSyncing(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [ready, token]);
+
+  // Debounced push of every change while logged in.
+  useEffect(() => {
+    if (!ready || !token) return;
+    if (skipPush.current) {
+      skipPush.current = false;
+      return;
+    }
+    if (pushTimer.current) clearTimeout(pushTimer.current);
+    pushTimer.current = setTimeout(() => {
+      api.pushState(token, stateRef.current);
+    }, 1500);
+    return () => {
+      if (pushTimer.current) clearTimeout(pushTimer.current);
+    };
+  }, [state, ready, token]);
 
   useEffect(() => {
     if (!ready) return;
@@ -368,6 +428,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const resetAll = useCallback(() => {
     localStorage.removeItem(KEY);
+    storeToken(null);
+    setToken(null);
     setState(EMPTY);
   }, []);
 
@@ -375,8 +437,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setState((s) => sampleState(s));
   }, []);
 
+  const setAuthToken = useCallback((t: string | null) => {
+    storeToken(t);
+    setToken(t);
+  }, []);
+
+  const logout = useCallback(async () => {
+    const t = token;
+    if (t) await api.logout(t);
+    storeToken(null);
+    setToken(null);
+    localStorage.removeItem(KEY);
+    setState(EMPTY);
+  }, [token]);
+
   return (
-    <AppCtx.Provider value={{ state, ready, update, addXp, resetAll, loadSample }}>
+    <AppCtx.Provider
+      value={{ state, ready, token, syncing, update, addXp, resetAll, loadSample, setAuthToken, logout }}
+    >
       {children}
     </AppCtx.Provider>
   );
