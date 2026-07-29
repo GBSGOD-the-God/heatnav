@@ -12,6 +12,18 @@
  *   $DB_PASS = 'your-database-password';
  *   $GOOGLE_CLIENT_ID = ''; // optional: xxxx.apps.googleusercontent.com
  *
+ *   // Email verification. Set to false while your site has no working
+ *   // email sending (e.g. on a temporary *.hostingersite.com subdomain) —
+ *   // accounts then activate instantly (email domains are still DNS-checked).
+ *   $REQUIRE_EMAIL_VERIFICATION = true;
+ *
+ *   // Reliable mail via SMTP (recommended once you have a domain +
+ *   // an email account, e.g. Hostinger: smtp.hostinger.com, port 465):
+ *   $SMTP_HOST = '';
+ *   $SMTP_PORT = 465;
+ *   $SMTP_USER = ''; // e.g. noreply@yourdomain.com
+ *   $SMTP_PASS = '';
+ *
  * Tables are created automatically on first use.
  */
 
@@ -24,6 +36,11 @@ $DB_NAME = '';
 $DB_USER = '';
 $DB_PASS = '';
 $GOOGLE_CLIENT_ID = '';
+$REQUIRE_EMAIL_VERIFICATION = true;
+$SMTP_HOST = '';
+$SMTP_PORT = 465;
+$SMTP_USER = '';
+$SMTP_PASS = '';
 
 $localConfig = __DIR__ . '/config.local.php';
 if (file_exists($localConfig)) {
@@ -155,12 +172,75 @@ function siteBase(): string
     return $https . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
 }
 
+/** Minimal SMTP client (STARTTLS or implicit TLS on 465, AUTH LOGIN) —
+ *  mail() on shared hosting often claims success but never delivers. */
+function smtpSend(string $to, string $subject, string $bodyTxt): bool
+{
+    global $SMTP_HOST, $SMTP_PORT, $SMTP_USER, $SMTP_PASS;
+    $from = $SMTP_USER;
+    $prefix = ((int)$SMTP_PORT === 465) ? 'ssl://' : 'tcp://';
+    $fp = @stream_socket_client($prefix . $SMTP_HOST . ':' . $SMTP_PORT, $errno, $errstr, 12);
+    if (!$fp) {
+        return false;
+    }
+    stream_set_timeout($fp, 12);
+    $read = function () use ($fp): string {
+        $data = '';
+        while (($line = fgets($fp, 515)) !== false) {
+            $data .= $line;
+            if (strlen($line) < 4 || $line[3] === ' ') {
+                break;
+            }
+        }
+        return $data;
+    };
+    $cmd = function (string $c) use ($fp, $read): string {
+        fwrite($fp, $c . "\r\n");
+        return $read();
+    };
+    try {
+        $read();
+        $cmd('EHLO studentify');
+        if ((int)$SMTP_PORT !== 465) {
+            if (!str_starts_with($cmd('STARTTLS'), '220')) {
+                return false;
+            }
+            stream_socket_enable_crypto($fp, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
+            $cmd('EHLO studentify');
+        }
+        $cmd('AUTH LOGIN');
+        $cmd(base64_encode($SMTP_USER));
+        if (!str_starts_with($cmd(base64_encode($SMTP_PASS)), '235')) {
+            return false;
+        }
+        $cmd("MAIL FROM:<$from>");
+        if (!str_starts_with($cmd("RCPT TO:<$to>"), '250')) {
+            return false;
+        }
+        if (!str_starts_with($cmd('DATA'), '354')) {
+            return false;
+        }
+        $msg = "From: Studentify <$from>\r\nTo: <$to>\r\nSubject: $subject\r\n"
+            . "Content-Type: text/plain; charset=utf-8\r\n\r\n"
+            . str_replace("\n.", "\n..", $bodyTxt) . "\r\n.";
+        $ok = str_starts_with($cmd($msg), '250');
+        $cmd('QUIT');
+        return $ok;
+    } finally {
+        fclose($fp);
+    }
+}
+
 function sendVerificationMail(string $email, string $token): bool
 {
+    global $SMTP_HOST, $SMTP_USER;
     $host = $_SERVER['HTTP_HOST'] ?? 'studentify.local';
     $link = siteBase() . '/api/verify.php?token=' . urlencode($token);
     $subject = 'Verify your Studentify account';
     $bodyTxt = "Welcome to Studentify!\n\nClick the link below to verify your email and activate your account:\n\n$link\n\nIf you didn't sign up, you can ignore this email.";
+    if ($SMTP_HOST !== '' && $SMTP_USER !== '') {
+        return smtpSend($email, $subject, $bodyTxt);
+    }
     $headers = "From: Studentify <noreply@$host>\r\nContent-Type: text/plain; charset=utf-8";
     return @mail($email, $subject, $bodyTxt, $headers);
 }

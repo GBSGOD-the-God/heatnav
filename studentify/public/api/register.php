@@ -25,18 +25,41 @@ $st = $pdo->prepare('SELECT * FROM users WHERE email = ?');
 $st->execute([$email]);
 $existing = $st->fetch(PDO::FETCH_ASSOC);
 
+if ($existing && (int)$existing['verified'] === 1) {
+    respond(409, ['error' => 'email-taken', 'message' => 'An account with this email already exists — try logging in.']);
+}
+
+$hash = password_hash($password, PASSWORD_DEFAULT);
+
+// Verification disabled (no working mail on this host yet):
+// activate instantly and log the user straight in.
+if (!$REQUIRE_EMAIL_VERIFICATION) {
+    if ($existing) {
+        $pdo->prepare('UPDATE users SET name = ?, password_hash = ?, verified = 1, verify_token = NULL WHERE id = ?')
+            ->execute([$name, $hash, $existing['id']]);
+        $userId = (int)$existing['id'];
+    } else {
+        $pdo->prepare('INSERT INTO users (email, name, password_hash, verified) VALUES (?, ?, ?, 1)')
+            ->execute([$email, $name, $hash]);
+        $userId = (int)$pdo->lastInsertId();
+    }
+    respond(200, [
+        'ok' => true,
+        'token' => issueToken($userId),
+        'name' => $name,
+        'email' => $email,
+    ]);
+}
+
 $verifyToken = bin2hex(random_bytes(32));
 
 if ($existing) {
-    if ((int)$existing['verified'] === 1) {
-        respond(409, ['error' => 'email-taken', 'message' => 'An account with this email already exists — try logging in.']);
-    }
     // Unverified account signing up again: refresh details and resend the link.
     $pdo->prepare('UPDATE users SET name = ?, password_hash = ?, verify_token = ? WHERE id = ?')
-        ->execute([$name, password_hash($password, PASSWORD_DEFAULT), $verifyToken, $existing['id']]);
+        ->execute([$name, $hash, $verifyToken, $existing['id']]);
 } else {
     $pdo->prepare('INSERT INTO users (email, name, password_hash, verify_token) VALUES (?, ?, ?, ?)')
-        ->execute([$email, $name, password_hash($password, PASSWORD_DEFAULT), $verifyToken]);
+        ->execute([$email, $name, $hash, $verifyToken]);
 }
 
 $mailSent = sendVerificationMail($email, $verifyToken);

@@ -45,10 +45,16 @@ const json = (body: unknown, token?: string | null): RequestInit => ({
 
 export const api = {
   register(name: string, email: string, password: string) {
-    return call<{ ok: boolean; mailSent: boolean; verifyLink?: string; message?: string }>(
-      "register.php",
-      json({ name, email, password })
-    );
+    return call<{
+      ok: boolean;
+      mailSent?: boolean;
+      verifyLink?: string;
+      message?: string;
+      // present when the server has email verification disabled (instant login)
+      token?: string;
+      name?: string;
+      email?: string;
+    }>("register.php", json({ name, email, password }));
   },
   login(email: string, password: string) {
     return call<{ token: string; name: string; email: string }>(

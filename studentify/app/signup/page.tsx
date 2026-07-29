@@ -38,8 +38,13 @@ export default function Signup() {
     setError(null);
     const r = await api.register(name.trim(), email.trim(), password);
     setBusy(false);
-    if (r.ok) {
-      setSent({ mailSent: r.data.mailSent, verifyLink: r.data.verifyLink });
+    if (r.ok && r.data.token) {
+      // Server has verification disabled — account is active, log straight in.
+      sessionStorage.setItem("studentify:draft", JSON.stringify({ name, email }));
+      setAuthToken(r.data.token);
+      router.push("/onboarding");
+    } else if (r.ok) {
+      setSent({ mailSent: r.data.mailSent ?? false, verifyLink: r.data.verifyLink });
     } else if (r.error === "network" || r.error === "server-not-configured") {
       // No backend reachable (e.g. local demo) — continue in device-only mode.
       sessionStorage.setItem("studentify:draft", JSON.stringify({ name, email }));
