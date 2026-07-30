@@ -71,6 +71,18 @@ export const api = {
       json({ credential })
     );
   },
+  tutor(
+    payload: {
+      messages: { role: string; text: string }[];
+      mode: string;
+      profile: unknown;
+      memory: string[];
+      length: string;
+    },
+    token: string | null
+  ) {
+    return call<{ text: string; remaining?: number }>("tutor.php", json(payload, token));
+  },
   pullState(token: string) {
     return call<{ state: AppState | null; updatedAt: string | null }>("data.php", {
       headers: { Authorization: `Bearer ${token}` },

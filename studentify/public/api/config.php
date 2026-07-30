@@ -24,6 +24,11 @@
  *   $SMTP_USER = ''; // e.g. noreply@yourdomain.com
  *   $SMTP_PASS = '';
  *
+ *   // Site-wide AI: the owner's Mistral key (console.mistral.ai). When set,
+ *   // EVERY visitor gets the AI tutor automatically — no per-user keys.
+ *   $MISTRAL_API_KEY = '';
+ *   $AI_DAILY_LIMIT = 50; // AI messages per user per day
+ *
  * Tables are created automatically on first use.
  */
 
@@ -41,6 +46,8 @@ $SMTP_HOST = '';
 $SMTP_PORT = 465;
 $SMTP_USER = '';
 $SMTP_PASS = '';
+$MISTRAL_API_KEY = '';
+$AI_DAILY_LIMIT = 50;
 
 $localConfig = __DIR__ . '/config.local.php';
 if (file_exists($localConfig)) {
@@ -105,6 +112,13 @@ function ensureTables(PDO $pdo): void
         user_id INT PRIMARY KEY,
         state LONGTEXT,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS ai_usage (
+        who VARCHAR(80) NOT NULL,
+        day DATE NOT NULL,
+        count INT NOT NULL DEFAULT 0,
+        PRIMARY KEY (who, day)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 }
 

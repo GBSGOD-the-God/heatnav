@@ -3,12 +3,13 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { aiModes, type Mode } from "@/lib/data";
+import { api } from "@/lib/api";
 import { localReply } from "@/lib/engine";
 import { askMistral } from "@/lib/mistral";
 import { uid, useApp, type ChatMsg } from "@/lib/store";
 
 function TutorInner() {
-  const { state, update, addXp } = useApp();
+  const { state, update, addXp, token } = useApp();
   const params = useSearchParams();
   const [mode, setMode] = useState<Mode>(aiModes[0]);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -73,20 +74,35 @@ function TutorInner() {
   }
 
   async function getAiResponse(history: ChatMsg[], userText: string): Promise<ChatMsg> {
+    const payload = {
+      messages: history,
+      mode: mode.id,
+      profile: state.profile,
+      memory: state.settings.memoryOn ? state.memory : [],
+      length: state.settings.responseLength,
+    };
+
+    // 1) Site AI — the owner's server-side key, free for every student.
+    const server = await api.tutor(payload, token);
+    if (server.ok && server.data.text) {
+      setUsedMistral(true);
+      return { role: "ai", text: server.data.text };
+    }
+    if (!server.ok && server.error === "rate-limited") {
+      setUsedMistral(false);
+      return { role: "ai", text: `⏳ ${server.message}` };
+    }
+
+    // 2) Personal key from Settings (works even where the site AI isn't set up).
     if (key) {
-      const text = await askMistral({
-        key,
-        messages: history,
-        mode: mode.id,
-        profile: state.profile,
-        memory: state.settings.memoryOn ? state.memory : [],
-        length: state.settings.responseLength,
-      });
+      const text = await askMistral({ key, ...payload });
       if (text) {
         setUsedMistral(true);
         return { role: "ai", text };
       }
     }
+
+    // 3) Built-in offline engine.
     setUsedMistral(false);
     const r = localReply(mode.id, userText, state.profile, state.settings.hintsFirst);
     pendingRef.current = { hint: r.hint, solution: r.solution };
@@ -156,7 +172,7 @@ function TutorInner() {
           {mode.name} · {state.profile?.grade} {state.profile?.board}
           <span className="ml-auto flex items-center gap-2">
             {usedMistral === true && (
-              <span className="rounded-full border border-mint/40 bg-mint/10 px-2 py-0.5 text-[10px] text-mint">Mistral AI</span>
+              <span className="rounded-full border border-mint/40 bg-mint/10 px-2 py-0.5 text-[10px] text-mint">Studentify AI</span>
             )}
             {usedMistral === false && (
               <span className="rounded-full border border-edge px-2 py-0.5 text-[10px]">Local engine</span>
@@ -250,9 +266,9 @@ function TutorInner() {
             </button>
           </form>
           <div className="mt-2 text-center text-[10px] text-faint">
-            {key
-              ? "Powered by Mistral — answers adapt to your profile and memory."
-              : "Running on the built-in engine (solves equations & arithmetic offline). Add a Mistral key in Settings for full AI answers."}
+            {usedMistral === false && !key
+              ? "Built-in engine active (solves equations & arithmetic offline). Full AI answers arrive when the site AI is enabled."
+              : "Answers adapt to your class, mode and memory. Hints come before solutions."}
           </div>
         </div>
       </div>

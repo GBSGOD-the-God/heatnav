@@ -133,11 +133,11 @@ export default function SettingsPage() {
       <div className="card px-6 py-2">
         <div className="pt-4 pb-1 text-[11px] font-bold uppercase tracking-widest text-faint">AI</div>
         <div className="py-4 border-b border-edge/60">
-          <div className="text-sm font-semibold">Mistral API key</div>
+          <div className="text-sm font-semibold">Personal Mistral API key</div>
           <div className="text-xs text-sub mt-0.5 leading-relaxed">
-            Optional — unlocks full AI answers on any topic. Get a free key at{" "}
-            <span className="text-accent2">console.mistral.ai</span>. Stored only on this
-            device and sent straight to Mistral.
+            Usually not needed — this site provides AI for everyone. A personal key
+            (free at <span className="text-accent2">console.mistral.ai</span>) acts as
+            your own backup, e.g. past the daily limit. Stored only on this device.
           </div>
           <input
             type="password"
