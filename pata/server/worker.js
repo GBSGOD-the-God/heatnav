@@ -41,7 +41,13 @@ const CORS = {
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), {
     status,
-    headers: { 'Content-Type': 'application/json', ...CORS },
+    headers: {
+      'Content-Type': 'application/json',
+      // Never cache. A stale /health showing the old ai:false after you have
+      // just fixed the key sends you debugging a problem you already solved.
+      'Cache-Control': 'no-store, no-cache, must-revalidate',
+      ...CORS,
+    },
   });
 
 // ---------------------------------------------------------------- rate limit
@@ -214,7 +220,18 @@ export default {
 
     // Lets the app decide whether AI is on without spending a token.
     if (path === '/health') {
-      return json({ ok: true, ai: Boolean(env.MISTRAL_API_KEY) });
+      const key = env.MISTRAL_API_KEY;
+      return json({
+        ok: true,
+        ai: Boolean(key),
+        // Diagnostics for whoever is deploying. NAMES ONLY — no secret value
+        // is ever returned, and the key is reported solely as a length.
+        // Without this, "ai": false looks identical whether the secret is
+        // missing, misspelled, or saved as an empty string.
+        worker: 'pata-ai',
+        keyLength: typeof key === 'string' ? key.length : 0,
+        bindings: Object.keys(env).sort(),
+      });
     }
 
     // A human who pastes the bare URL into a browser lands here. Answer them
