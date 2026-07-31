@@ -12,6 +12,7 @@ import { readPage } from '../ocr';
 import { LANGUAGES, langDef, matchConcept, s, type L } from '../packs';
 import { SAMPLE_PAGES, type SamplePage } from '../pages';
 import { canListen, isSpeaking, listen, speak, stopSpeak } from '../speech';
+import { summarise } from '../summarise';
 import { el, esc, toast } from '../ui';
 
 let lang: string = 'hi';
@@ -75,6 +76,10 @@ function pageView(root: HTMLElement, page: ResolvedPage): void {
         page.confidence !== undefined ? ` · ${page.confidence}%` : ''
       }</p>` : ''}
 
+      ${page.pageLines.length ? `
+      <button class="btn primary big" id="sumBtn">✂ ${esc(s('summarise', lang))}</button>
+      <div id="summaryHolder"></div>` : ''}
+
       ${page.explanation ? `
       <div class="explain-box">
         <div class="row spread">
@@ -96,6 +101,43 @@ function pageView(root: HTMLElement, page: ResolvedPage): void {
     </section>`);
   holder.appendChild(view);
   view.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // Summarise — the point of reading the page. Runs on-device, in the child's
+  // language, and every line shown is a real line from the page.
+  const sumBtn = view.querySelector<HTMLButtonElement>('#sumBtn');
+  sumBtn?.addEventListener('click', () => {
+    const holder = view.querySelector('#summaryHolder')!;
+    const result = summarise(page.pageLines.join(' '), lang, 3);
+    if (!result.sentences.length || result.summaryWords >= result.originalWords * 0.9) {
+      holder.innerHTML = `<p class="note">${esc(s('tooShort', lang))}</p>`;
+      return;
+    }
+    holder.innerHTML = `
+      <div class="explain-box summary">
+        <div class="row spread">
+          <h3>${esc(s('summaryTitle', lang))}</h3>
+          <button class="btn small" id="sumListen">▶ ${esc(s('listen', lang))}</button>
+        </div>
+        ${result.sentences.map((line) => `<p class="summary-line">${esc(line)}</p>`).join('')}
+        ${result.keywords.length
+          ? `<p class="tiny"><b>${esc(s('keywords', lang))}:</b> ${result.keywords.map(esc).join(' · ')}</p>`
+          : ''}
+        <p class="tiny">${result.originalWords} ${esc(s('summaryStat', lang))} ${result.summaryWords}
+          · ${esc(s('summaryNote', lang))}</p>
+      </div>`;
+    const sumText = result.sentences.join(' ');
+    const sumListen = holder.querySelector<HTMLButtonElement>('#sumListen')!;
+    sumListen.addEventListener('click', () => {
+      if (isSpeaking()) {
+        stopSpeak();
+        sumListen.textContent = `▶ ${s('listen', lang)}`;
+      } else {
+        speak(sumText, speechLang());
+        sumListen.textContent = `⏹ ${s('stop', lang)}`;
+      }
+    });
+    holder.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
 
   const listenBtn = view.querySelector<HTMLButtonElement>('#listenBtn');
   // With no explanation (unknown page), reading the page itself aloud is the
