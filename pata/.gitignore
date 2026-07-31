@@ -4,3 +4,6 @@ dist/
 # Vendored offline OCR assets (~33MB) are fetched by scripts/fetch-ocr-assets.sh
 public/tessdata/
 public/tesseract/
+
+# Build-time AI proxy URL (see server/README.md)
+.env

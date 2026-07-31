@@ -1,132 +1,130 @@
-// Real AI (§7): lesson + diagnostic-question generation, photographed-page
-// explanation in any of the 12 languages, and tolerant explain-it-back judging.
-// Calls the Claude API directly from the phone with the teacher's own API key
-// (stored only in IndexedDB on the device — no backend, no accounts).
-// Offline or without a key, the app falls back to the on-device bank and says so.
-import Anthropic from '@anthropic-ai/sdk';
+// AI, via a proxy you control (see server/).
+//
+// No API key ever lives in this app. A teacher is never asked for one, and
+// nothing here would work if a key were shipped anyway — an APK is a zip, and
+// a key inside it can be extracted with one command. So the app calls a small
+// Worker that holds the key server-side.
+//
+// Every function here is optional. If the proxy is unset, unreachable, rate
+// limited or broken, callers fall back to the on-device path — OCR, the
+// offline summariser and the built-in question bank — and the app keeps
+// working with no network at all.
 import { kvGet, kvSet, uid } from './db';
 import type { Lesson, Question } from './types';
 
-const MODEL = 'claude-opus-5';
+/** Baked in at build time (.env: VITE_PATA_AI_URL); overridable in Settings
+ *  so a district can point at its own deployment without a rebuild. */
+const BUILT_IN_URL = (import.meta.env?.VITE_PATA_AI_URL ?? '').trim();
 
-export async function getApiKey(): Promise<string> {
-  return (await kvGet<string>('anthropicApiKey')) ?? '';
+export async function getProxyUrl(): Promise<string> {
+  const override = (await kvGet<string>('aiProxyUrl')) ?? '';
+  return (override || BUILT_IN_URL).replace(/\/+$/, '');
 }
-export async function setApiKey(key: string): Promise<void> {
-  await kvSet('anthropicApiKey', key.trim());
+export async function setProxyUrl(url: string): Promise<void> {
+  await kvSet('aiProxyUrl', url.trim().replace(/\/+$/, ''));
 }
+export function hasBuiltInUrl(): boolean {
+  return BUILT_IN_URL !== '';
+}
+
+/** Stable per-install id, so one broken device can be rate limited without
+ *  identifying anyone. Random — not derived from the phone or the child. */
+async function deviceId(): Promise<string> {
+  let id = await kvGet<string>('deviceId');
+  if (!id) {
+    id = uid() + uid();
+    await kvSet('deviceId', id);
+  }
+  return id;
+}
+
 export async function aiAvailable(): Promise<boolean> {
-  return navigator.onLine && (await getApiKey()) !== '';
+  return navigator.onLine && (await getProxyUrl()) !== '';
 }
 
-async function client(): Promise<Anthropic> {
-  const apiKey = await getApiKey();
-  return new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+/** Ask the proxy whether it is actually configured. Used by Settings only. */
+export async function aiHealth(): Promise<'ok' | 'nokey' | 'unreachable' | 'unset'> {
+  const base = await getProxyUrl();
+  if (!base) return 'unset';
+  try {
+    const res = await fetch(base + '/health', { method: 'GET' });
+    if (!res.ok) return 'unreachable';
+    const body = await res.json();
+    return body?.ai ? 'ok' : 'nokey';
+  } catch {
+    return 'unreachable';
+  }
 }
 
-const BI = {
-  type: 'object',
-  properties: { hi: { type: 'string' }, en: { type: 'string' } },
-  required: ['hi', 'en'],
-  additionalProperties: false,
-} as const;
+class AiError extends Error {}
 
-const OPTION = {
-  type: 'object',
-  properties: {
-    text: BI,
-    correct: { type: 'boolean' },
-    mis: { anyOf: [BI, { type: 'null' }] },
-  },
-  required: ['text', 'correct', 'mis'],
-  additionalProperties: false,
-} as const;
+async function call<T>(path: string, payload: unknown, timeoutMs = 60_000): Promise<T> {
+  const base = await getProxyUrl();
+  if (!base) throw new AiError('unset');
 
-const LESSON_SCHEMA = {
-  type: 'object',
-  properties: {
-    topicLabel: BI,
-    subject: BI,
-    gradeBand: { type: 'string' },
-    material: {
-      type: 'object',
-      properties: {
-        hi: { type: 'array', items: { type: 'string' } },
-        en: { type: 'array', items: { type: 'string' } },
-      },
-      required: ['hi', 'en'],
-      additionalProperties: false,
-    },
-    questions: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          text: BI,
-          options: {
-            type: 'object',
-            properties: { A: OPTION, B: OPTION, C: OPTION, D: OPTION },
-            required: ['A', 'B', 'C', 'D'],
-            additionalProperties: false,
-          },
-        },
-        required: ['text', 'options'],
-        additionalProperties: false,
-      },
-    },
-  },
-  required: ['topicLabel', 'subject', 'gradeBand', 'material', 'questions'],
-  additionalProperties: false,
-} as const;
-
-function firstText(content: Array<{ type: string; text?: string }>): string {
-  const block = content.find((b) => b.type === 'text');
-  if (!block?.text) throw new Error('empty');
-  return block.text;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(base + path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Pata-Device': await deviceId() },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+    if (res.status === 429) throw new AiError('ratelimit');
+    if (!res.ok) throw new AiError('upstream');
+    return (await res.json()) as T;
+  } catch (e) {
+    if (e instanceof AiError) throw e;
+    throw new AiError((e as Error).name === 'AbortError' ? 'timeout' : 'offline');
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
-/** §7.1 — generate lesson material + 3 diagnostic questions with a named
- *  misconception behind every distractor (§4). */
+// ---------------------------------------------------------------- lessons
+
+interface RawLesson {
+  topicLabel: { hi: string; en: string };
+  subject: { hi: string; en: string };
+  gradeBand: string;
+  material: { hi: string[]; en: string[] };
+  questions: Question[];
+}
+
+/** §7.1 — lesson material + 3 diagnostic questions, each distractor carrying
+ *  a named misconception (§4). */
 export async function aiGenerateLesson(topic: string): Promise<Lesson> {
-  const c = await client();
-  const response = await c.messages.create({
-    model: MODEL,
-    max_tokens: 8000,
-    output_config: { format: { type: 'json_schema', schema: LESSON_SCHEMA }, effort: 'medium' },
-    system:
-      'You prepare lessons for a rural Indian government-school teacher with a multigrade classroom (grades 4–8). ' +
-      'Produce: (1) 3–4 short paragraphs of practical teaching material she can use at the blackboard, centred on the ' +
-      'misconceptions children actually hold about the topic; (2) EXACTLY 3 diagnostic multiple-choice check questions. ' +
-      'CRITICAL: each question has exactly one correct option; every wrong option must encode ONE specific, plainly-named ' +
-      'misconception (set "mis" to a short plain-language description of the child\'s error; set "mis" to null on the correct ' +
-      'option and "correct" true only there). Distribute the correct answer across different letters. ' +
-      'Provide every string in BOTH Hindi (Devanagari) and English. Keep question text short enough to read aloud across a classroom.',
-    messages: [{ role: 'user', content: `Topic the teacher typed: "${topic}"` }],
-  });
-  if (response.stop_reason === 'refusal') throw new Error('refused');
-  const parsed = JSON.parse(firstText(response.content as never));
-  const questions: Question[] = parsed.questions.slice(0, 3).map((q: Question) => {
+  const raw = await call<RawLesson>('/lesson', { topic });
+  if (!Array.isArray(raw.questions) || raw.questions.length < 3) throw new AiError('badoutput');
+
+  const questions = raw.questions.slice(0, 3).map((q) => {
     for (const k of ['A', 'B', 'C', 'D'] as const) {
-      const o = q.options[k] as Question['options']['A'] & { mis: unknown };
-      if (!o.correct && !o.mis) o.mis = { hi: 'गलतफ़हमी', en: 'misconception' };
-      if (o.correct) delete (o as { mis?: unknown }).mis;
-      if (o.mis === null) delete (o as { mis?: unknown }).mis;
+      const o = q.options?.[k] as (Question['options']['A'] & { mis?: unknown }) | undefined;
+      if (!o) throw new AiError('badoutput');
+      if (o.correct) delete o.mis;
+      else if (!o.mis) o.mis = { hi: 'गलतफ़हमी', en: 'misconception' };
     }
+    // A question with no correct answer is worse than no question.
+    const correct = (['A', 'B', 'C', 'D'] as const).filter((k) => q.options[k].correct);
+    if (correct.length !== 1) throw new AiError('badoutput');
     return q;
   });
-  if (questions.length < 3) throw new Error('badoutput');
+
   return {
     id: uid(),
     topicKey: 'ai-' + topic.toLowerCase().replace(/\s+/g, '-').slice(0, 40),
-    topicLabel: parsed.topicLabel,
-    subject: parsed.subject,
-    gradeBand: parsed.gradeBand,
-    material: parsed.material,
+    topicLabel: raw.topicLabel,
+    subject: raw.subject,
+    gradeBand: raw.gradeBand || '—',
+    material: raw.material,
     questions,
     source: 'ai',
     createdAt: Date.now(),
   };
 }
+
+// ---------------------------------------------------------------- pages
 
 export interface AiPage {
   title: string;
@@ -136,121 +134,33 @@ export interface AiPage {
   concepts: Array<{ label: string; keywords: string[]; wrong: boolean }>;
 }
 
-const PAGE_SCHEMA = {
-  type: 'object',
-  properties: {
-    title: { type: 'string' },
-    bookLine: { type: 'string' },
-    pageLines: { type: 'array', items: { type: 'string' } },
-    explanation: { type: 'string' },
-    concepts: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          label: { type: 'string' },
-          keywords: { type: 'array', items: { type: 'string' } },
-          wrong: { type: 'boolean' },
-        },
-        required: ['label', 'keywords', 'wrong'],
-        additionalProperties: false,
-      },
-    },
-  },
-  required: ['title', 'bookLine', 'pageLines', 'explanation', 'concepts'],
-  additionalProperties: false,
-} as const;
-
-/** §7.2 — read a photographed textbook page and explain it simply, in the
- *  student's language, for text + audio together. */
-export async function aiExplainPage(
-  imageBase64: string,
-  mediaType: string,
-  languageName: string
-): Promise<AiPage> {
-  const c = await client();
-  const response = await c.messages.create({
-    model: MODEL,
-    max_tokens: 6000,
-    output_config: { format: { type: 'json_schema', schema: PAGE_SCHEMA }, effort: 'medium' },
-    system:
-      `A schoolchild (age 9–13) photographed a textbook page and needs it explained in ${languageName}. ` +
-      `Read the page. Return, ALL in ${languageName}: "pageLines" = the page's key content as 3–6 short lines; ` +
-      '"bookLine" = subject/class/page if visible, else a short description; "title" = the topic; ' +
-      '"explanation" = a warm, simple spoken-style explanation (5–8 sentences) using an everyday analogy, ' +
-      'written to be read aloud by text-to-speech; ' +
-      '"concepts" = 2 key ideas the child should be able to say back (wrong=false, with 4–8 lowercase keywords a child might use, ' +
-      `in ${languageName} and Latin transliteration) plus exactly 1 plausible-but-wrong idea (wrong=true, empty keywords). ` +
-      'If the image is not a book/notebook page, or contains a person, say so briefly in "explanation" and return empty pageLines and concepts.',
-    messages: [
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'image',
-            source: {
-              type: 'base64',
-              media_type: mediaType as 'image/jpeg',
-              data: imageBase64,
-            },
-          },
-          { type: 'text', text: `Explain this page in ${languageName}.` },
-        ],
-      },
-    ],
-  });
-  if (response.stop_reason === 'refusal') throw new Error('refused');
-  return JSON.parse(firstText(response.content as never));
+/** §7.2 — explain a photographed page in the student's language. */
+export function aiExplainPage(imageBase64: string, languageName: string): Promise<AiPage> {
+  return call<AiPage>('/page', { image: imageBase64, language: languageName }, 90_000);
 }
 
-const JUDGE_SCHEMA = {
-  type: 'object',
-  properties: {
-    verdict: { type: 'string', enum: ['good', 'partial', 'missing'] },
-    feedback: { type: 'string' },
-  },
-  required: ['verdict', 'feedback'],
-  additionalProperties: false,
-} as const;
+// ---------------------------------------------------------------- judging
 
-/** §7.3 — semantic, tolerant explain-it-back judge: did the right concepts
- *  appear? Decoded against the known page as a strong prior. */
-export async function aiJudgeExplanation(
+/** §7.3 — semantic, tolerant explain-it-back judging. */
+export function aiJudgeExplanation(
   pageSummary: string,
   concepts: string[],
   transcript: string,
   languageName: string
 ): Promise<{ verdict: 'good' | 'partial' | 'missing'; feedback: string }> {
-  const c = await client();
-  const response = await c.messages.create({
-    model: MODEL,
-    max_tokens: 1000,
-    output_config: { format: { type: 'json_schema', schema: JUDGE_SCHEMA }, effort: 'low' },
-    system:
-      'A child is explaining back a textbook page they just studied. Judge SEMANTICALLY and TOLERANTLY: did the key concepts ' +
-      'appear in any words, any mix of languages, however clumsy? Never penalise grammar or pronunciation artifacts from speech ' +
-      'recognition. verdict: "good" = the key ideas are there; "partial" = a real start but one key idea missing; ' +
-      '"missing" = the ideas are not there or a misconception was stated. ' +
-      `"feedback" = ONE warm, encouraging sentence to the child in ${languageName}; if partial, name the missing idea simply; ` +
-      'never scold.',
-    messages: [
-      {
-        role: 'user',
-        content:
-          `Page: ${pageSummary}\nKey concepts expected: ${concepts.join(' | ')}\n` +
-          `Child said (speech-recognised): "${transcript}"`,
-      },
-    ],
-  });
-  if (response.stop_reason === 'refusal') throw new Error('refused');
-  return JSON.parse(firstText(response.content as never));
+  return call('/judge', {
+    page: pageSummary,
+    concepts,
+    said: transcript,
+    language: languageName,
+  }, 30_000);
 }
 
-/** Map SDK errors to a short i18n key for the UI. */
+/** Map a failure to a short i18n key. Everything here is non-fatal. */
 export function aiErrorKey(e: unknown): string {
-  if (e instanceof Anthropic.AuthenticationError) return 'aiErrBadKey';
-  if (e instanceof Anthropic.RateLimitError) return 'aiErrRate';
-  if (e instanceof Anthropic.APIConnectionError) return 'aiErrOffline';
-  if (e instanceof Error && e.message === 'refused') return 'aiErrRefused';
+  const m = e instanceof Error ? e.message : '';
+  if (m === 'ratelimit') return 'aiErrRate';
+  if (m === 'offline' || m === 'unset') return 'aiErrOffline';
+  if (m === 'timeout') return 'aiErrTimeout';
   return 'aiErrGeneric';
 }

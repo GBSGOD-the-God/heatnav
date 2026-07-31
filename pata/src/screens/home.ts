@@ -343,7 +343,7 @@ export async function renderHome(root: HTMLElement): Promise<void> {
       // 2. Online: hand the same photo to Claude for a proper explanation.
       if (await aiAvailable()) {
         try {
-          const ai = await aiExplainPage(dataUrl.split(',')[1], 'image/jpeg', langDef(lang).english);
+          const ai = await aiExplainPage(dataUrl.split(',')[1], langDef(lang).english);
           pageView(root, {
             title: ai.title,
             bookLine: ai.bookLine,

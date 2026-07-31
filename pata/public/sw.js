@@ -14,13 +14,11 @@ const SHELL = [
   './icon.svg',
   './assets/app.js',
   './assets/index.css',
-  // Lazy chunks the SDK pulls in — precached so an offline cold load
-  // never hits a missing import.
+  // Small lazy chunks Tesseract pulls in — precached so the first offline
+  // OCR run never hits a missing import.
   './assets/web.js',
   './assets/web2.js',
   './assets/web3.js',
-  './assets/node.browser.js',
-  './assets/__vite-browser-external.js',
 ];
 
 self.addEventListener('install', (e) => {

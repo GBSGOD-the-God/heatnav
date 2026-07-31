@@ -1,0 +1,13 @@
+name = "pata-ai"
+main = "worker.js"
+compatibility_date = "2026-01-01"
+
+# The Mistral key is NOT set here — this file is committed to git.
+# It is stored encrypted in Cloudflare:
+#     npx wrangler secret put MISTRAL_API_KEY
+#
+# Model IDs are plain config, so you can change them without touching code.
+# Verify current names at https://docs.mistral.ai/getting-started/models/
+[vars]
+TEXT_MODEL = "mistral-small-latest"
+VISION_MODEL = "pixtral-12b-2409"
