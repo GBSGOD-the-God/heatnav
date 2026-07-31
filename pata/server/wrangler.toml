@@ -2,6 +2,11 @@ name = "pata-ai"
 main = "worker.js"
 compatibility_date = "2026-01-01"
 
+# Serve on https://pata-ai.<your-subdomain>.workers.dev.
+# Stated explicitly rather than relying on the default, so a deploy can never
+# quietly land with no public route attached.
+workers_dev = true
+
 # The Mistral key is NOT set here — this file is committed to git.
 # It is stored encrypted in Cloudflare:
 #     npx wrangler secret put MISTRAL_API_KEY
