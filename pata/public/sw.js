@@ -1,19 +1,37 @@
-/* PATA service worker — full offline. Precache the fixed asset list, then
-   cache-first for everything so every classroom function works with the
-   network permanently off. */
-const CACHE = 'pata-v1';
-const PRECACHE = [
+/* PATA service worker — full offline.
+   Two tiers:
+     - SHELL: precached on install, so a cold load works with the network off.
+     - Everything else (OCR worker, WASM core, the 12 language models): cached
+       the first time it is used, then available offline. In the Android APK
+       these files ship on disk, so OCR is offline from the moment it installs.
+*/
+const CACHE = 'pata-v2';
+
+const SHELL = [
   './',
   './index.html',
   './manifest.webmanifest',
   './icon.svg',
   './assets/app.js',
   './assets/index.css',
+  // Lazy chunks the SDK pulls in — precached so an offline cold load
+  // never hits a missing import.
+  './assets/web.js',
+  './assets/web2.js',
+  './assets/web3.js',
+  './assets/node.browser.js',
+  './assets/__vite-browser-external.js',
 ];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open(CACHE).then((c) => c.addAll(PRECACHE)).then(() => self.skipWaiting())
+    caches.open(CACHE).then(async (cache) => {
+      // Add individually: one 404 must not abort the whole install.
+      await Promise.all(
+        SHELL.map((url) => cache.add(url).catch(() => undefined))
+      );
+      await self.skipWaiting();
+    })
   );
 });
 
@@ -27,18 +45,31 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-  if (e.request.method !== 'GET') return;
+  const req = e.request;
+  if (req.method !== 'GET') return;
+
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin) return; // never touch the API
+
   e.respondWith(
-    caches.match(e.request, { ignoreSearch: true }).then(
+    caches.match(req, { ignoreSearch: true }).then(
       (hit) =>
         hit ||
-        fetch(e.request).then((res) => {
-          if (res.ok && new URL(e.request.url).origin === self.location.origin) {
-            const copy = res.clone();
-            caches.open(CACHE).then((c) => c.put(e.request, copy));
-          }
-          return res;
-        })
+        fetch(req)
+          .then((res) => {
+            if (res.ok) {
+              const copy = res.clone();
+              caches.open(CACHE).then((c) => c.put(req, copy));
+            }
+            return res;
+          })
+          .catch(async () => {
+            // Offline and uncached: fall back to the shell for navigations.
+            if (req.mode === 'navigate') {
+              return (await caches.match('./index.html')) ?? Response.error();
+            }
+            return Response.error();
+          })
     )
   );
 });

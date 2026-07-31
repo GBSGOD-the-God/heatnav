@@ -10,6 +10,7 @@ import { renderHome } from './screens/home';
 import { renderReport } from './screens/report';
 import { renderInsight } from './screens/insight';
 import { renderRoster } from './screens/roster';
+import { renderSettings } from './screens/settings';
 import { stopSpeak } from './speech';
 
 type Renderer = (root: HTMLElement, params: URLSearchParams) => Promise<void> | void;
@@ -22,6 +23,7 @@ const ROUTES: Record<string, Renderer> = {
   report: renderReport,
   insight: renderInsight,
   roster: renderRoster,
+  settings: renderSettings,
 };
 
 const NAV: Array<[string, string, string]> = [
@@ -56,10 +58,12 @@ async function render(): Promise<void> {
       <div class="topbar-actions">
         <button class="icon-btn" id="langBtn" aria-label="${esc(t('settingsLang'))}">${getLang() === 'hi' ? 'En' : 'हि'}</button>
         <button class="icon-btn" id="rosterBtn" aria-label="${esc(t('rosterTitle'))}">☷</button>
+        <button class="icon-btn" id="settingsBtn" aria-label="${esc(t('settingsTitle'))}">⚙</button>
       </div>
     </header>`);
   header.querySelector('#brandBtn')!.addEventListener('click', () => go('/prep'));
   header.querySelector('#rosterBtn')!.addEventListener('click', () => go('/roster'));
+  header.querySelector('#settingsBtn')!.addEventListener('click', () => go('/settings'));
   header.querySelector('#langBtn')!.addEventListener('click', async () => {
     const s = await getSettings();
     s.lang = s.lang === 'hi' ? 'en' : 'hi';
@@ -72,7 +76,8 @@ async function render(): Promise<void> {
   const main = el('<main class="screen"></main>');
   app.appendChild(main);
 
-  const navScreen = screen === 'result' ? 'check' : screen === 'roster' ? '' : screen;
+  const navScreen =
+    screen === 'result' ? 'check' : screen === 'roster' || screen === 'settings' ? '' : screen;
   const nav = el(
     `<nav class="bottombar">${NAV.map(
       ([key, label, icon]) =>

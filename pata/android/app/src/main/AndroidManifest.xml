@@ -37,5 +37,28 @@
 
     <!-- Permissions -->
 
+    <!-- Sync and AI when there is signal; the app is fully usable without it. -->
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Speaking to the app: "explain it back", spoken topics, spoken reports. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- Photographing a PAGE of a book. Never a person, never a child (C9). -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
+    <!-- Android 11+ package visibility: needed so the speech recogniser and the
+         text-to-speech engine can be found, and so the share sheet lists apps. -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.SEND" />
+            <data android:mimeType="text/plain" />
+        </intent>
+    </queries>
 </manifest>

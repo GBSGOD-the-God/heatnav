@@ -1,4 +1,5 @@
-import { BANK } from '../bank';
+import { aiAvailable, aiErrorKey, aiGenerateLesson } from '../ai';
+import { BANK, findBankTopic } from '../bank';
 import { allActions, allChecks, allLessons, saveLesson } from '../db';
 import { generateLesson } from '../generator';
 import { bi, getLang, t } from '../i18n';
@@ -72,7 +73,8 @@ function lessonView(root: HTMLElement, lesson: Lesson): void {
     <section class="lesson">
       <div class="lesson-head">
         <h2>${esc(bi(lesson.topicLabel))}</h2>
-        <span class="meta">${esc(bi(lesson.subject))} · ${esc(t('grade'))} ${esc(lesson.gradeBand)}</span>
+        <span class="meta">${esc(bi(lesson.subject))} · ${esc(t('grade'))} ${esc(lesson.gradeBand)}
+          · ${esc(lesson.source === 'ai' ? t('aiSourceTag') : t('bankSourceTag'))}</span>
       </div>
       ${lesson.source === 'draft' ? `<p class="note">${esc(t('prepDraftNote'))}</p>` : ''}
       <h3>${esc(t('prepMaterial'))}</h3>
@@ -143,10 +145,29 @@ export async function renderPrep(root: HTMLElement): Promise<void> {
   const input = screen.querySelector<HTMLInputElement>('#topicInput')!;
   const voiceNote = screen.querySelector('#voiceNote')!;
 
+  const genBtn = screen.querySelector<HTMLButtonElement>('#genBtn')!;
+
   const makeLesson = async (topic: string) => {
     if (!topic.trim()) return;
-    const lesson = generateLesson(topic);
-    lesson.questions.forEach(shuffleOptions);
+    let lesson = null;
+    // Real AI when there's a key + internet (except bank topics picked offline-style,
+    // which are instant either way); on-device bank/draft otherwise — never blocked.
+    if ((await aiAvailable()) && !findBankTopic(topic)) {
+      genBtn.disabled = true;
+      genBtn.textContent = t('aiGenerating');
+      try {
+        lesson = await aiGenerateLesson(topic);
+      } catch (err) {
+        toast(t(aiErrorKey(err)));
+      } finally {
+        genBtn.disabled = false;
+        genBtn.textContent = t('prepGenerate');
+      }
+    }
+    if (!lesson) {
+      lesson = generateLesson(topic);
+      lesson.questions.forEach(shuffleOptions);
+    }
     await saveLesson(lesson);
     toast(t('prepSaved'));
     lessonView(root, lesson);

@@ -1,5 +1,6 @@
 // She speaks; the form drafts. She reviews and submits — NEVER auto-submit
 // (spec §7.4). Counts only; no per-child attendance anywhere (§10).
+import { Share } from '@capacitor/share';
 import { allReports, getSettings, saveReport, uid } from '../db';
 import { getLang, t } from '../i18n';
 import { canListen, listen } from '../speech';
@@ -67,7 +68,8 @@ export async function renderReport(root: HTMLElement): Promise<void> {
         <label>${esc(t('reportTopics'))}<input type="text" name="topics" /></label>
         <label>${esc(t('reportNotes'))}<textarea name="notes" rows="2"></textarea></label>
         <button type="submit" class="btn primary big">${esc(t('reportSubmit'))}</button>
-        <p class="tiny center">${esc(t('reportNeverAuto'))}</p>
+        <button type="button" class="btn big" id="shareBtn">📤 ${esc(t('reportShare'))}</button>
+        <p class="tiny center">${esc(t('reportNeverAuto'))} · ${esc(t('reportShareHint'))}</p>
       </form>
       <div id="past"></div>
     </div>`);
@@ -104,6 +106,38 @@ export async function renderReport(root: HTMLElement): Promise<void> {
     }
   });
   screen.querySelector('#demoBtn')!.addEventListener('click', () => fillForm(SAMPLE_SENTENCE[lang]));
+
+  /** Compose the report as plain text — this is what goes to the head teacher. */
+  const reportText = (): string => {
+    const data = new FormData(form);
+    const v = (n: string) => String(data.get(n) ?? '').trim() || '—';
+    const date = new Date().toLocaleDateString();
+    return [
+      `${t('reportTitle')} — ${date}`,
+      `${t('reportPresent')}: ${v('present')}`,
+      `${t('reportMeals')}: ${v('meals')}`,
+      `${t('reportChecks')}: ${v('checks')}`,
+      `${t('reportTopics')}: ${v('topics')}`,
+      v('notes') !== '—' ? `${t('reportNotes')}: ${v('notes')}` : '',
+      '— PATA',
+    ].filter(Boolean).join('\n');
+  };
+
+  // Share sheet → WhatsApp, SMS, email, anything installed. Works offline;
+  // the chosen app queues it. Native share on Android, Web Share in a browser.
+  screen.querySelector('#shareBtn')!.addEventListener('click', async () => {
+    const text = reportText();
+    try {
+      await Share.share({ title: t('reportTitle'), text, dialogTitle: t('reportShare') });
+    } catch {
+      try {
+        await navigator.clipboard.writeText(text);
+        toast(t('reportShare'));
+      } catch {
+        toast(t('aiErrGeneric'));
+      }
+    }
+  });
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();

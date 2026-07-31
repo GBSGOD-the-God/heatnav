@@ -1,2 +1,6 @@
 node_modules/
 dist/
+
+# Vendored offline OCR assets (~33MB) are fetched by scripts/fetch-ocr-assets.sh
+public/tessdata/
+public/tesseract/

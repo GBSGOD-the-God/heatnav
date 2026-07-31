@@ -32,8 +32,8 @@ export interface Lesson {
   gradeBand: string;
   material: { hi: string[]; en: string[] };
   questions: Question[];
-  /** 'bank' = curated diagnostic set; 'draft' = generic skeleton the teacher edits. */
-  source: 'bank' | 'draft';
+  /** 'ai' = generated live by Claude; 'bank' = curated offline set; 'draft' = skeleton the teacher edits. */
+  source: 'ai' | 'bank' | 'draft';
   createdAt: number;
 }
 
