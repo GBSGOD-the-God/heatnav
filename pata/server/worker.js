@@ -217,6 +217,22 @@ export default {
       return json({ ok: true, ai: Boolean(env.MISTRAL_API_KEY) });
     }
 
+    // A human who pastes the bare URL into a browser lands here. Answer them
+    // in words rather than with {"error":"method"}, which reads like a broken
+    // deployment when in fact the Worker is fine.
+    if (path === '' && request.method === 'GET') {
+      const keySet = Boolean(env.MISTRAL_API_KEY);
+      return json({
+        service: 'PATA AI proxy',
+        status: keySet ? 'ready' : 'no API key set',
+        next: keySet
+          ? 'Working. Paste this URL into the app: Settings -> Advanced.'
+          : 'Run: npx wrangler secret put MISTRAL_API_KEY, then npx wrangler deploy',
+        note: 'The app POSTs to /lesson, /page and /judge. Visiting those in a browser is a GET, so they answer 405 — that is correct, not a fault.',
+        health: new URL(request.url).origin + '/health',
+      });
+    }
+
     if (request.method !== 'POST') return json({ error: 'method' }, 405);
     if (!env.MISTRAL_API_KEY) return json({ error: 'unconfigured' }, 503);
 
