@@ -1,0 +1,43 @@
+name: Deploy PATA to GitHub Pages
+
+on:
+  push:
+    branches: [claude/pata-build-spec-bar7xw]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: pata/package-lock.json
+      - run: npm ci
+        working-directory: pata
+      - run: npm run build
+        working-directory: pata
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: pata/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
