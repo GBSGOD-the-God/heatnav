@@ -116,6 +116,15 @@ const S: Record<string, Bi> = {
   // Report
   reportTitle: { hi: 'आज की रिपोर्ट', en: "Today's report" },
   reportHint: { hi: 'बोलिए — फ़ॉर्म खुद भर जाएगा। जमा आप ही करेंगी।', en: 'Speak — the form drafts itself. You review and submit.' },
+  reportSpeakAll: { hi: 'पूरा वाक्य बोलें', en: 'Speak the whole sentence' },
+  reportFieldMicHint: {
+    hi: 'सबसे आसान: किसी खाने के 🎤 को छूकर सिर्फ़ वही संख्या बोलें — जैसे “चौंतीस”। पूरा वाक्य बोलना ज़रूरी नहीं।',
+    en: 'Easiest: tap the 🎤 next to a box and say just that number — like “thirty four”. You do not have to speak a whole sentence.',
+  },
+  reportNoNumber: {
+    hi: 'कोई संख्या नहीं पकड़ी गई — फिर बोलें या हाथ से भरें',
+    en: 'No number caught — say it again or type it',
+  },
   reportSpeak: { hi: 'बोलकर भरें', en: 'Fill by voice' },
   reportDemoFill: { hi: 'नमूना वाक्य से भरें', en: 'Fill from a sample sentence' },
   reportSimNote: { hi: 'डेमो: आवाज़ न मिलने पर नमूना वाक्य से भरा जाता है — यह सिमुलेशन है।', en: 'Demo: without voice input a sample sentence is used — this is simulated.' },

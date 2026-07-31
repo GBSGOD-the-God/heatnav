@@ -72,6 +72,13 @@ function pageView(root: HTMLElement, page: ResolvedPage): void {
           ? page.pageLines.map((line) => `<p>${esc(line)}</p>`).join('')
           : `<p>${esc(s('noText', lang))}</p>`}
       </div>
+      ${
+        // Say plainly when the read went badly, and why. Tesseract is trained
+        // on printed text — handwriting is genuinely out of reach on-device.
+        page.confidence !== undefined && (page.confidence < 65 || page.pageLines.length === 0)
+          ? `<p class="note">${esc(s('lowConfidence', lang))}</p>`
+          : ''
+      }
       ${page.provenance ? `<p class="tiny">${esc(page.provenance)}${
         page.confidence !== undefined ? ` · ${page.confidence}%` : ''
       }</p>` : ''}

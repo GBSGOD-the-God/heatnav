@@ -399,3 +399,13 @@ details.advanced[open] summary { color: var(--cream); margin-bottom: 6px; }
   .brand-name { display: none; }
   .result-num .n { font-size: 48px; }
 }
+
+/* Per-field mic — say one value instead of a whole sentence. */
+.field-row { display: flex; gap: 8px; align-items: stretch; }
+.field-row input { flex: 1; min-width: 0; }
+.mic-btn {
+  flex: none; width: 48px; border-radius: var(--radius);
+  border: 1px solid var(--cream-line); background: #fffdf6;
+  font-size: 19px; cursor: pointer; line-height: 1;
+}
+.mic-btn.listening { background: var(--accent); border-color: var(--accent); color: #fff; }

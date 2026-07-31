@@ -45,11 +45,84 @@ async function getWorker(lang: string, onProgress?: (pct: number) => void): Prom
   return worker;
 }
 
+/**
+ * Clean the photo before OCR. A phone snap of a book is a bad OCR input:
+ * uneven room light, page curl, camera shadow, JPEG noise. Tesseract wants
+ * flat black text on flat white paper, so we give it that.
+ *
+ * Adaptive (local-mean) thresholding rather than one global cut-off, because
+ * a global threshold turns the shadowed half of a curled page into a black
+ * block and loses every word in it.
+ */
+export function preprocess(canvas: HTMLCanvasElement): HTMLCanvasElement {
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+  const { width: w, height: h } = canvas;
+  const img = ctx.getImageData(0, 0, w, h);
+  const px = img.data;
+
+  // 1. Greyscale, perceptually weighted, into a plain array.
+  const grey = new Float32Array(w * h);
+  for (let i = 0, p = 0; i < px.length; i += 4, p++) {
+    grey[p] = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+  }
+
+  // 2. Integral image, so the local mean below is O(1) per pixel instead of
+  //    O(window²) — the difference between instant and unusable on a 2GB phone.
+  const sum = new Float64Array((w + 1) * (h + 1));
+  for (let y = 0; y < h; y++) {
+    let row = 0;
+    for (let x = 0; x < w; x++) {
+      row += grey[y * w + x];
+      sum[(y + 1) * (w + 1) + (x + 1)] = sum[y * (w + 1) + (x + 1)] + row;
+    }
+  }
+  const meanOf = (x0: number, y0: number, x1: number, y1: number) => {
+    const area = (x1 - x0) * (y1 - y0);
+    return (
+      (sum[y1 * (w + 1) + x1] - sum[y0 * (w + 1) + x1] -
+       sum[y1 * (w + 1) + x0] + sum[y0 * (w + 1) + x0]) / area
+    );
+  };
+
+  // Window ~1/16 of the short edge: wide enough to span a character, narrow
+  // enough to track a shadow gradient across the page.
+  const radius = Math.max(8, Math.floor(Math.min(w, h) / 32));
+  // Text must be this much darker than its surroundings to count as ink;
+  // keeps faint paper texture and print show-through from becoming speckle.
+  const BIAS = 8;
+
+  for (let y = 0, p = 0; y < h; y++) {
+    const y0 = Math.max(0, y - radius), y1 = Math.min(h, y + radius + 1);
+    for (let x = 0; x < w; x++, p++) {
+      const x0 = Math.max(0, x - radius), x1 = Math.min(w, x + radius + 1);
+      const ink = grey[p] < meanOf(x0, y0, x1, y1) - BIAS ? 0 : 255;
+      const i = p * 4;
+      px[i] = px[i + 1] = px[i + 2] = ink;
+      px[i + 3] = 255;
+    }
+  }
+
+  ctx.putImageData(img, 0, 0);
+  return canvas;
+}
+
 export interface OcrResult {
   /** Lines of text actually found on the page. */
   lines: string[];
   /** Mean recognition confidence, 0–100. */
   confidence: number;
+}
+
+/** Load a data URL into a canvas we can work on. */
+async function toCanvas(dataUrl: string): Promise<HTMLCanvasElement> {
+  const res = await fetch(dataUrl);
+  const bitmap = await createImageBitmap(await res.blob());
+  const canvas = document.createElement('canvas');
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  canvas.getContext('2d')!.drawImage(bitmap, 0, 0);
+  bitmap.close();
+  return canvas;
 }
 
 /** Read a photographed page offline. `langCode` is an app language code (hi, ta…). */
@@ -60,7 +133,10 @@ export async function readPage(
 ): Promise<OcrResult> {
   const tess = TESS_LANG[langCode] ?? 'eng';
   const w = await getWorker(tess, onProgress);
-  const { data } = await w.recognize(imageDataUrl);
+  // Clean the photo first — this is worth more accuracy than any Tesseract
+  // parameter, because the input is a room-lit phone snap, not a scan.
+  const cleaned = preprocess(await toCanvas(imageDataUrl));
+  const { data } = await w.recognize(cleaned);
   const lines = data.text
     .split('\n')
     .map((l) => l.replace(/\s+/g, ' ').trim())

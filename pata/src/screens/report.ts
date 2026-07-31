@@ -1,71 +1,116 @@
 // She speaks; the form drafts. She reviews and submits — NEVER auto-submit
 // (spec §7.4). Counts only; no per-child attendance anywhere (§10).
+//
+// Two ways to fill it by voice, because one long sentence is fragile:
+//   - the mic on a single field: say just "चौंतीस". Almost always right.
+//   - the mic at the top: say the whole sentence, all fields at once.
+// Both parse spoken number WORDS, not just digits, and both try every guess
+// the recogniser offers rather than only its top pick.
 import { Share } from '@capacitor/share';
 import { allReports, getSettings, saveReport, uid } from '../db';
 import { getLang, t } from '../i18n';
-import { canListen, listen } from '../speech';
+import { findNumbers, normaliseDigits, parseSingleNumber } from '../numbers';
+import { canListen, listenAll } from '../speech';
 import type { DailyReport } from '../types';
 import { el, esc, toast } from '../ui';
 
 const SAMPLE_SENTENCE: Record<'hi' | 'en', string> = {
-  hi: 'आज 34 बच्चे उपस्थित रहे, भोजन 32 को मिला, 2 जाँचें पूरी हुईं, विषय हासिल वाला घटाव',
-  en: 'Today 34 children were present, meals went to 32, 2 checks completed, topic subtraction with borrowing',
+  hi: 'आज चौंतीस बच्चे उपस्थित रहे, भोजन बत्तीस को मिला, दो जाँचें पूरी हुईं, विषय हासिल वाला घटाव',
+  en: 'Today thirty four children were present, meals went to thirty two, two checks completed, topic subtraction with borrowing',
 };
 
-/** Pull counts out of a spoken sentence: nearest number to each keyword. */
+/** Words that mark each field. More synonyms = more forgiving. */
+const FIELD_WORDS = {
+  present: ['बच्चे', 'बच्चों', 'उपस्थित', 'हाज़िर', 'हाजिर', 'present', 'children', 'attendance', 'attended'],
+  meals: ['भोजन', 'खाना', 'मध्याह्न', 'meal', 'meals', 'lunch', 'food'],
+  checks: ['जाँच', 'जांच', 'जाँचें', 'जांचें', 'check', 'checks'],
+};
+
+/**
+ * Pull counts out of a spoken sentence: for each field, the number sitting
+ * closest to one of its marker words.
+ */
 export function parseReportSpeech(raw: string): Partial<DailyReport> {
-  // Normalise Devanagari digits.
-  const text = raw.replace(/[०-९]/g, (d) => String('०१२३४५६७८९'.indexOf(d)));
-  const numbers: Array<{ value: number; at: number }> = [];
-  for (const m of text.matchAll(/\d+/g)) numbers.push({ value: parseInt(m[0], 10), at: m.index! });
+  const text = normaliseDigits(raw);
+  const lower = text.toLowerCase();
+  const numbers = findNumbers(text); // digits AND spoken words
 
   const nearest = (keywords: string[]): number | null => {
     let best: number | null = null;
     let bestDist = Infinity;
     for (const kw of keywords) {
-      const at = text.toLowerCase().indexOf(kw);
-      if (at < 0) continue;
-      for (const n of numbers) {
-        const dist = Math.abs(n.at - at);
-        if (dist < bestDist && dist < 30) {
-          bestDist = dist;
-          best = n.value;
+      // Every occurrence, not just the first — "भोजन" may appear twice.
+      let at = lower.indexOf(kw.toLowerCase());
+      while (at >= 0) {
+        for (const n of numbers) {
+          const dist = Math.abs(n.at - at);
+          // Widened from 30: a spoken number word plus a postposition can sit
+          // further from its marker than a bare digit does.
+          if (dist < bestDist && dist < 45) {
+            bestDist = dist;
+            best = n.value;
+          }
         }
+        at = lower.indexOf(kw.toLowerCase(), at + 1);
       }
     }
     return best;
   };
 
-  const topicMatch = text.match(/(?:विषय|topic)[:\s]*(.+?)(?:[।.]|$)/i);
+  const topicMatch = text.match(/(?:विषय|पाठ|topic|lesson)[:\s]*(.+?)(?:[।.]|$)/i);
   return {
-    presentCount: nearest(['बच्चे', 'उपस्थित', 'present', 'children']),
-    mealsCount: nearest(['भोजन', 'meal']),
-    checksDone: nearest(['जाँच', 'जांच', 'check']),
+    presentCount: nearest(FIELD_WORDS.present),
+    mealsCount: nearest(FIELD_WORDS.meals),
+    checksDone: nearest(FIELD_WORDS.checks),
     topicsTaught: topicMatch ? topicMatch[1].trim() : '',
   };
+}
+
+/** Score a parse so we can pick the best of several recogniser guesses. */
+function score(p: Partial<DailyReport>): number {
+  let n = 0;
+  if (p.presentCount != null) n += 2; // the field that matters most
+  if (p.mealsCount != null) n++;
+  if (p.checksDone != null) n++;
+  if (p.topicsTaught) n++;
+  return n;
 }
 
 export async function renderReport(root: HTMLElement): Promise<void> {
   root.innerHTML = '';
   await getSettings();
   const lang = getLang();
+  const speechLocale = lang === 'hi' ? 'hi-IN' : 'en-IN';
+
+  const numField = (name: string, label: string) => `
+    <label>${esc(label)}
+      <span class="field-row">
+        <input type="number" name="${name}" min="0" inputmode="numeric" />
+        <button type="button" class="mic-btn" data-mic="${name}" aria-label="${esc(t('reportSpeak'))}">🎤</button>
+      </span>
+    </label>`;
 
   const screen = el(`
     <div>
       <h1>${esc(t('reportTitle'))}</h1>
       <p class="sub">${esc(t('reportHint'))}</p>
+      <p class="tiny">${esc(t('reportFieldMicHint'))}</p>
       <div class="row">
-        <button class="btn" id="voiceBtn">🎤 ${esc(t('reportSpeak'))}</button>
+        <button class="btn" id="voiceBtn">🎤 ${esc(t('reportSpeakAll'))}</button>
         <button class="btn ghost" id="demoBtn">${esc(t('reportDemoFill'))}</button>
       </div>
-      <p class="tiny">${esc(t('reportSimNote'))}</p>
       <p class="tiny" id="heard" hidden></p>
 
       <form class="paper report-form" id="reportForm">
-        <label>${esc(t('reportPresent'))}<input type="number" name="present" min="0" inputmode="numeric" /></label>
-        <label>${esc(t('reportMeals'))}<input type="number" name="meals" min="0" inputmode="numeric" /></label>
-        <label>${esc(t('reportChecks'))}<input type="number" name="checks" min="0" inputmode="numeric" /></label>
-        <label>${esc(t('reportTopics'))}<input type="text" name="topics" /></label>
+        ${numField('present', t('reportPresent'))}
+        ${numField('meals', t('reportMeals'))}
+        ${numField('checks', t('reportChecks'))}
+        <label>${esc(t('reportTopics'))}
+          <span class="field-row">
+            <input type="text" name="topics" />
+            <button type="button" class="mic-btn" data-mic="topics" aria-label="${esc(t('reportSpeak'))}">🎤</button>
+          </span>
+        </label>
         <label>${esc(t('reportNotes'))}<textarea name="notes" rows="2"></textarea></label>
         <button type="submit" class="btn primary big">${esc(t('reportSubmit'))}</button>
         <button type="button" class="btn big" id="shareBtn">📤 ${esc(t('reportShare'))}</button>
@@ -77,14 +122,53 @@ export async function renderReport(root: HTMLElement): Promise<void> {
 
   const form = screen.querySelector<HTMLFormElement>('#reportForm')!;
   const heard = screen.querySelector<HTMLElement>('#heard')!;
+  const field = (n: string) => form.elements.namedItem(n) as HTMLInputElement;
 
-  const fillForm = (transcript: string) => {
-    heard.hidden = false;
-    heard.textContent = `${t('reportHeard')} “${transcript}”`;
-    const parsed = parseReportSpeech(transcript);
+  // --- per-field mic: say one value, nothing else ---
+  screen.querySelectorAll<HTMLButtonElement>('[data-mic]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const name = btn.dataset.mic!;
+      const input = field(name);
+      if (!canListen()) {
+        toast(t('homeVoiceUnavailable'));
+        input.focus();
+        return;
+      }
+      btn.classList.add('listening');
+      btn.textContent = '●';
+      try {
+        const guesses = await listenAll(speechLocale, 8000);
+        if (name === 'topics') {
+          input.value = guesses[0];
+        } else {
+          // Take the first guess that actually contains a number — the
+          // recogniser's top pick often does not.
+          const hit = guesses.map(parseSingleNumber).find((v) => v != null);
+          if (hit == null) {
+            heard.hidden = false;
+            heard.textContent = `${t('reportHeard')} “${guesses[0]}” — ${t('reportNoNumber')}`;
+            input.focus();
+            return;
+          }
+          input.value = String(hit);
+        }
+        heard.hidden = false;
+        heard.textContent = `${t('reportHeard')} “${guesses[0]}”`;
+      } catch {
+        toast(t('homeVoiceUnavailable'));
+        input.focus();
+      } finally {
+        btn.classList.remove('listening');
+        btn.textContent = '🎤';
+      }
+    });
+  });
+
+  // --- whole-sentence mic ---
+  const fillFrom = (parsed: Partial<DailyReport>) => {
     const set = (name: string, v: number | string | null | undefined) => {
       if (v === null || v === undefined || v === '') return;
-      (form.elements.namedItem(name) as HTMLInputElement).value = String(v);
+      field(name).value = String(v);
     };
     set('present', parsed.presentCount);
     set('meals', parsed.mealsCount);
@@ -94,26 +178,39 @@ export async function renderReport(root: HTMLElement): Promise<void> {
 
   screen.querySelector('#voiceBtn')!.addEventListener('click', async () => {
     if (!canListen()) {
-      fillForm(SAMPLE_SENTENCE[lang]);
+      heard.hidden = false;
+      heard.textContent = t('homeVoiceUnavailable');
       return;
     }
     heard.hidden = false;
     heard.textContent = t('prepListening');
     try {
-      fillForm(await listen(lang === 'hi' ? 'hi-IN' : 'en-IN', 10000));
+      const guesses = await listenAll(speechLocale, 12000);
+      // Parse every guess, keep whichever filled the most fields.
+      const best = guesses
+        .map((g) => ({ g, p: parseReportSpeech(g) }))
+        .sort((a, b) => score(b.p) - score(a.p))[0];
+      fillFrom(best.p);
+      heard.textContent =
+        `${t('reportHeard')} “${best.g}”` + (score(best.p) === 0 ? ` — ${t('reportNoNumber')}` : '');
     } catch {
-      fillForm(SAMPLE_SENTENCE[lang]);
+      heard.textContent = t('homeVoiceUnavailable');
     }
   });
-  screen.querySelector('#demoBtn')!.addEventListener('click', () => fillForm(SAMPLE_SENTENCE[lang]));
 
-  /** Compose the report as plain text — this is what goes to the head teacher. */
+  screen.querySelector('#demoBtn')!.addEventListener('click', () => {
+    const sentence = SAMPLE_SENTENCE[lang];
+    fillFrom(parseReportSpeech(sentence));
+    heard.hidden = false;
+    heard.textContent = `${t('reportHeard')} “${sentence}”`;
+  });
+
+  /** The report as plain text — this is what reaches the head teacher. */
   const reportText = (): string => {
     const data = new FormData(form);
     const v = (n: string) => String(data.get(n) ?? '').trim() || '—';
-    const date = new Date().toLocaleDateString();
     return [
-      `${t('reportTitle')} — ${date}`,
+      `${t('reportTitle')} — ${new Date().toLocaleDateString()}`,
       `${t('reportPresent')}: ${v('present')}`,
       `${t('reportMeals')}: ${v('meals')}`,
       `${t('reportChecks')}: ${v('checks')}`,
@@ -123,8 +220,6 @@ export async function renderReport(root: HTMLElement): Promise<void> {
     ].filter(Boolean).join('\n');
   };
 
-  // Share sheet → WhatsApp, SMS, email, anything installed. Works offline;
-  // the chosen app queues it. Native share on Android, Web Share in a browser.
   screen.querySelector('#shareBtn')!.addEventListener('click', async () => {
     const text = reportText();
     try {
@@ -166,20 +261,17 @@ export async function renderReport(root: HTMLElement): Promise<void> {
   const renderPast = async () => {
     const past = await allReports();
     const holder = screen.querySelector('#past')!;
-    if (!past.length) {
-      holder.innerHTML = '';
-      return;
-    }
-    holder.innerHTML = `
-      <h3>${esc(t('reportPast'))}</h3>
-      <div class="list">
-        ${past.slice(0, 7).map(
-          (r) => `<div class="list-item static">
-            <strong>${esc(r.date)}</strong>
-            <span class="meta">${r.presentCount ?? '—'} · ${esc(t('reportChecks'))}: ${r.checksDone ?? '—'} · ${esc(r.topicsTaught)}</span>
-          </div>`
-        ).join('')}
-      </div>`;
+    holder.innerHTML = past.length
+      ? `<h3>${esc(t('reportPast'))}</h3>
+         <div class="list">
+           ${past.slice(0, 7).map(
+             (r) => `<div class="list-item static">
+               <strong>${esc(r.date)}</strong>
+               <span class="meta">${r.presentCount ?? '—'} · ${esc(t('reportChecks'))}: ${r.checksDone ?? '—'} · ${esc(r.topicsTaught)}</span>
+             </div>`
+           ).join('')}
+         </div>`
+      : '';
   };
   await renderPast();
 }

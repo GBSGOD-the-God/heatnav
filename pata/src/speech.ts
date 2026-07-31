@@ -12,7 +12,11 @@ import { TextToSpeech } from '@capacitor-community/text-to-speech';
 const isNative = Capacitor.isNativePlatform();
 
 // --- Web Speech typings (not in TS's DOM lib) ---
-interface SRResultEvent { results: { [i: number]: { [j: number]: { transcript: string } } } }
+interface SRAlternatives {
+  readonly length: number;
+  [j: number]: { transcript: string };
+}
+interface SRResultEvent { results: { [i: number]: SRAlternatives } }
 interface SRInstance {
   lang: string;
   interimResults: boolean;
@@ -31,29 +35,33 @@ export function canListen(): boolean {
   return !!WebSR && navigator.onLine !== false;
 }
 
-async function listenNative(lang: string): Promise<string> {
+async function listenNative(lang: string): Promise<string[]> {
   const { available } = await NativeSR.available();
   if (!available) throw new Error('unavailable');
   const perm = await NativeSR.requestPermissions();
   if (perm.speechRecognition !== 'granted') throw new Error('denied');
   const result = await NativeSR.start({
     language: lang,
-    maxResults: 1,
+    // Ask for several guesses, not one. The recogniser's top pick is often
+    // wrong on numbers and names while a lower-ranked guess is right; the
+    // caller can try to parse each. Keeping only the first was throwing away
+    // most of the accuracy the engine actually had.
+    maxResults: 5,
     partialResults: false,
     popup: true, // the familiar Google mic dialog — robust in a noisy room
   });
-  const heard = result.matches?.[0]?.trim();
-  if (!heard) throw new Error('nospeech');
-  return heard;
+  const matches = (result.matches ?? []).map((m) => m.trim()).filter(Boolean);
+  if (!matches.length) throw new Error('nospeech');
+  return matches;
 }
 
-function listenWeb(lang: string, timeoutMs: number): Promise<string> {
+function listenWeb(lang: string, timeoutMs: number): Promise<string[]> {
   return new Promise((resolve, reject) => {
     if (!WebSR) return reject(new Error('unavailable'));
     const rec = new WebSR();
     rec.lang = lang;
     rec.interimResults = false;
-    rec.maxAlternatives = 1;
+    rec.maxAlternatives = 5;
     let done = false;
     const finish = (fn: () => void) => {
       if (done) return;
@@ -63,7 +71,16 @@ function listenWeb(lang: string, timeoutMs: number): Promise<string> {
       fn();
     };
     const timer = setTimeout(() => finish(() => reject(new Error('timeout'))), timeoutMs);
-    rec.onresult = (e: SRResultEvent) => finish(() => resolve(e.results[0][0].transcript));
+    rec.onresult = (e: SRResultEvent) =>
+      finish(() => {
+        const alts = e.results[0];
+        const out: string[] = [];
+        for (let i = 0; i < (alts.length ?? 1); i++) {
+          const t = alts[i]?.transcript?.trim();
+          if (t) out.push(t);
+        }
+        out.length ? resolve(out) : reject(new Error('nospeech'));
+      });
     rec.onerror = () => finish(() => reject(new Error('error')));
     rec.onend = () => finish(() => reject(new Error('nospeech')));
     try {
@@ -74,8 +91,15 @@ function listenWeb(lang: string, timeoutMs: number): Promise<string> {
   });
 }
 
-export function listen(lang: string, timeoutMs = 10000): Promise<string> {
+/** All the recogniser's guesses, best first. Callers that can validate the
+ *  content (a number, a known topic) should try each. */
+export function listenAll(lang: string, timeoutMs = 10000): Promise<string[]> {
   return isNative ? listenNative(lang) : listenWeb(lang, timeoutMs);
+}
+
+/** Just the best guess, for free text where there is nothing to validate against. */
+export async function listen(lang: string, timeoutMs = 10000): Promise<string> {
+  return (await listenAll(lang, timeoutMs))[0];
 }
 
 // --- Text to speech ---
