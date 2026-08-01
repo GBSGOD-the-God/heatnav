@@ -2,8 +2,8 @@
 // levels (C4). Always presented as labelled sample data (§12).
 import { BANK } from './bank';
 import { DEMO_SCHOOL } from './session';
-import { kvGet, kvSet, replaceRoster, saveCheck } from './db';
-import type { AggregateRow, CheckRecord, Student } from './types';
+import { kvGet, kvSet, replaceRoster, saveCheck, saveLesson } from './db';
+import type { AggregateRow, CheckRecord, Lesson, Student } from './types';
 
 const NAMES: Array<[string, string]> = [
   ['आरव', 'Aarav'], ['दिव्या', 'Divya'], ['कबीर', 'Kabir'], ['मीरा', 'Meera'],
@@ -102,10 +102,34 @@ export const SAMPLE_AGGREGATES: AggregateRow[] = [
   { scope: 'district', topicLabel: { hi: 'स्थानीय मान', en: 'Place value' }, subject: { hi: 'गणित', en: 'Maths' }, grade: '4–5', checks: 501, confusedPct: 47, topMisconception: { hi: 'बोले हुए हर हिस्से को अलग-अलग लिख दिया (400 फिर 3)', en: 'writes each spoken part separately (400 then 3)' } },
 ];
 
+/**
+ * The lesson the sample checks came from.
+ *
+ * Without this the child's screen opens on "what you missed today" with no
+ * "today's lesson" above it — the checks were seeded but the lesson they
+ * belong to never was, so the top half of their screen was simply absent until
+ * a teacher happened to draft one on the same device.
+ */
+function sampleLesson(): Lesson {
+  const topic = BANK.find((b) => b.key === 'sub-borrow')!;
+  return {
+    id: 'sample-lesson',
+    topicKey: topic.key,
+    topicLabel: topic.label,
+    subject: topic.subject,
+    gradeBand: topic.gradeBand,
+    material: topic.material,
+    questions: topic.questions,
+    source: 'bank',
+    createdAt: Date.now() - 24 * 60 * 60 * 1000,
+  };
+}
+
 export async function ensureSeeded(): Promise<void> {
   if (await kvGet<boolean>('seeded')) return;
   const roster = buildRoster();
   await replaceRoster(roster);
   for (const c of sampleChecks(roster)) await saveCheck(c);
+  await saveLesson(sampleLesson());
   await kvSet('seeded', true);
 }

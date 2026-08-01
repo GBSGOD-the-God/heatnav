@@ -352,6 +352,28 @@ export const S: Record<string, Pack> = {
     kn: 'ನನಗೆ ವಿವರಿಸಿ', ml: 'എനിക്ക് വിശദീകരിക്കൂ', gu: 'મને સમજાવો',
     or: 'ମୋତେ ବୁଝାନ୍ତୁ', pa: 'ਮੈਨੂੰ ਸਮਝਾਓ', as: 'মোক বুজাওক',
   },
+  teacherScript: {
+    hi: 'यह पाठ शिक्षक की भाषा में लिखा है। समझ न आए तो नीचे “मुझे समझाओ” दबाएँ।',
+    en: 'This lesson is written in your teacher’s language. Tap “Explain this to me” below if it is unclear.',
+    mr: 'हा धडा शिक्षकांच्या भाषेत लिहिला आहे. समजले नाही तर खाली “मला समजावा” दाबा.',
+    bn: 'এই পাঠ শিক্ষকের ভাষায় লেখা। না বুঝলে নিচে “আমাকে বোঝাও” চাপো।',
+    ta: 'இந்தப் பாடம் ஆசிரியரின் மொழியில் எழுதப்பட்டுள்ளது. புரியவில்லை என்றால் கீழே “எனக்கு விளக்கு” அழுத்துங்கள்.',
+    te: 'ఈ పాఠం ఉపాధ్యాయుని భాషలో రాసి ఉంది. అర్థం కాకపోతే కింద “నాకు వివరించు” నొక్కండి.',
+    kn: 'ಈ ಪಾಠ ಶಿಕ್ಷಕರ ಭಾಷೆಯಲ್ಲಿ ಬರೆದಿದೆ. ಅರ್ಥವಾಗದಿದ್ದರೆ ಕೆಳಗೆ “ನನಗೆ ವಿವರಿಸಿ” ಒತ್ತಿ.',
+    ml: 'ഈ പാഠം അധ്യാപകന്റെ ഭാഷയിൽ എഴുതിയതാണ്. മനസ്സിലായില്ലെങ്കിൽ താഴെ “എനിക്ക് വിശദീകരിക്കൂ” അമർത്തൂ.',
+    gu: 'આ પાઠ શિક્ષકની ભાષામાં લખાયો છે. ન સમજાય તો નીચે “મને સમજાવો” દબાવો.',
+    or: 'ଏହି ପାଠ ଶିକ୍ଷକଙ୍କ ଭାଷାରେ ଲେଖା ଅଛି। ବୁଝି ନ ପାରିଲେ ତଳେ “ମୋତେ ବୁଝାନ୍ତୁ” ଦବାନ୍ତୁ।',
+    pa: 'ਇਹ ਪਾਠ ਅਧਿਆਪਕ ਦੀ ਭਾਸ਼ਾ ਵਿੱਚ ਲਿਖਿਆ ਹੈ। ਸਮਝ ਨਾ ਆਵੇ ਤਾਂ ਹੇਠਾਂ “ਮੈਨੂੰ ਸਮਝਾਓ” ਦਬਾਓ।',
+    as: 'এই পাঠ শিক্ষকৰ ভাষাত লিখা আছে। বুজি নাপালে তলত “মোক বুজাওক” টিপক।',
+  },
+  adviceOffline: {
+    hi: 'बिना इंटरनेट के, इसी फ़ोन से', en: 'Without internet, from this phone',
+    mr: 'इंटरनेटशिवाय, याच फोनवरून', bn: 'ইন্টারনেট ছাড়া, এই ফোন থেকেই',
+    ta: 'இணையம் இல்லாமல், இந்த ஃபோனிலிருந்தே', te: 'ఇంటర్నెట్ లేకుండా, ఈ ఫోన్ నుంచే',
+    kn: 'ಇಂಟರ್ನೆಟ್ ಇಲ್ಲದೆ, ಈ ಫೋನಿನಿಂದಲೇ', ml: 'ഇന്റർനെറ്റ് ഇല്ലാതെ, ഈ ഫോണിൽ നിന്ന് തന്നെ',
+    gu: 'ઇન્ટરનેટ વગર, આ જ ફોનમાંથી', or: 'ଇଣ୍ଟରନେଟ ବିନା, ଏହି ଫୋନରୁ ହିଁ',
+    pa: 'ਇੰਟਰਨੈੱਟ ਤੋਂ ਬਿਨਾਂ, ਇਸੇ ਫ਼ੋਨ ਤੋਂ', as: 'ইণ্টাৰনেট নোহোৱাকৈ, এই ফোনৰ পৰাই',
+  },
   myWriting: {
     hi: 'मेरा लेखन', en: 'My writing', mr: 'माझे लेखन', bn: 'আমার লেখা',
     ta: 'என் எழுத்து', te: 'నా రచన', kn: 'ನನ್ನ ಬರಹ', ml: 'എന്റെ എഴുത്ത്',
@@ -399,6 +421,10 @@ export const S: Record<string, Pack> = {
   navWrite: {
     hi: 'लिखें', en: 'Write', mr: 'लिहा', bn: 'লেখো', ta: 'எழுது', te: 'రాయి',
     kn: 'ಬರೆಯಿರಿ', ml: 'എഴുതൂ', gu: 'લખો', or: 'ଲେଖନ୍ତୁ', pa: 'ਲਿਖੋ', as: 'লিখক',
+  },
+  navHome: {
+    hi: 'घर', en: 'Home', mr: 'घर', bn: 'বাড়ি', ta: 'வீடு', te: 'ఇల్లు',
+    kn: 'ಮನೆ', ml: 'വീട്', gu: 'ઘર', or: 'ଘର', pa: 'ਘਰ', as: 'ঘৰ',
   },
 
   lowConfidence: {
@@ -474,6 +500,28 @@ export function s(key: string, lang: string): string {
   const row = S[key];
   if (!row) return key;
   return row[lang as L] ?? row.en;
+}
+
+/**
+ * Which script to show stored lesson text in.
+ *
+ * Everything the APP says exists in all twelve languages. What the TEACHER
+ * typed exists only in the two the data model carries — so for the other ten
+ * we have to pick one of those two, and the honest question is which the child
+ * has a better chance of reading. Marathi is written in the same Devanagari as
+ * Hindi, so it gets Hindi. Everyone else gets Latin, which is taught in every
+ * state and is far likelier to be legible to a Tamil or Malayalam reader than
+ * Devanagari is. Whenever this differs from the chosen language, the screen
+ * says so rather than pretending the text was meant for them.
+ */
+export function contentScript(code: string): 'hi' | 'en' {
+  return code === 'hi' || code === 'mr' ? 'hi' : 'en';
+}
+
+/** The bundled explanation for a topic key, in all twelve languages. This is
+ *  what lets a child read an explanation in Tamil with the network off. */
+export function conceptFor(topicKey: string): ConceptPack | null {
+  return CONCEPTS.find((c) => c.key === topicKey) ?? null;
 }
 
 /** A school concept the app can explain offline, in every language. */

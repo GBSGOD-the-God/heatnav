@@ -38,7 +38,11 @@ const ROUTES: Record<string, Renderer> = {
 /** Screens each role is allowed to open. A child must never reach the class's
  *  marks, and the teacher's screens are no use to them (§5). */
 const TEACHER_SCREENS = ['prep', 'check', 'result', 'insight', 'report', 'home', 'roster', 'settings', 'write'];
-const STUDENT_SCREENS = ['my', 'home', 'write', 'settings'];
+// No Settings for the child. It configures a district's AI server and exists
+// only in Hindi and English — a wall of a script they may not read, guarding a
+// setting that is not theirs to make. The address is stored per device, so the
+// teacher setting it once covers the child on the same phone.
+const STUDENT_SCREENS = ['my', 'home', 'write'];
 
 const TEACHER_NAV: Array<[string, string, string]> = [
   ['prep', 'navPrep', '✎'],
@@ -61,27 +65,38 @@ function parseHash(): { screen: string; params: URLSearchParams } {
   return { screen: path, params: new URLSearchParams(query) };
 }
 
+/**
+ * Renders overlap. Signing out changes the hash AND the session, so two runs
+ * of render() can be in flight at once; both read the database, both wake up,
+ * and both append their own header/main/nav — which is the screen appearing
+ * twice. Two things stop that: every run takes a ticket and abandons itself if
+ * a newer one has started, and the screen is only ever installed with one
+ * atomic replaceChildren() rather than cleared first and filled in later.
+ */
+let renderTicket = 0;
+
 async function render(): Promise<void> {
+  const ticket = ++renderTicket;
   stopSpeak();
   const { screen, params } = parseHash();
 
   const app = document.getElementById('app')!;
-  app.innerHTML = '';
   const main = el('<main class="screen"></main>');
 
   const settings = await getSettings();
   const session = await getSession();
+  if (ticket !== renderTicket) return; // a newer render started while we waited
 
   // --- gates, in order ---
   // 1. Language first: you cannot read a login form in a script you don't read.
   if (!settings.languageChosen) {
-    app.appendChild(main);
+    app.replaceChildren(main);
     await renderLanguage(main);
     return;
   }
   // 2. Then who you are. No chrome on these screens — nothing to navigate to yet.
   if (!session) {
-    app.appendChild(main);
+    app.replaceChildren(main);
     await (screen === 'language' ? renderLanguage : renderLogin)(main);
     return;
   }
@@ -92,7 +107,7 @@ async function render(): Promise<void> {
 
   // Let someone re-pick their language without signing out.
   if (screen === 'language') {
-    app.appendChild(main);
+    app.replaceChildren(main);
     await renderLanguage(main);
     return;
   }
@@ -110,29 +125,34 @@ async function render(): Promise<void> {
       </button>
       ${isTeacher ? `<span class="sample-badge">${esc(t('sampleBadge'))}</span>` : ''}
       <div class="topbar-actions">
-        <button class="icon-btn" id="langBtn" aria-label="${esc(t('settingsLang'))}">${getLang() === 'hi' ? 'En' : 'हि'}</button>
+        <button class="icon-btn" id="langBtn" aria-label="${esc(pack('pickLanguage', L))}">${isTeacher ? (getLang() === 'hi' ? 'En' : 'हि') : 'भा'}</button>
         ${isTeacher ? `<button class="icon-btn" id="rosterBtn" aria-label="${esc(t('rosterTitle'))}">☷</button>` : ''}
-        <button class="icon-btn" id="settingsBtn" aria-label="${esc(t('settingsTitle'))}">⚙</button>
+        ${isTeacher ? `<button class="icon-btn" id="settingsBtn" aria-label="${esc(t('settingsTitle'))}">⚙</button>` : ''}
         <button class="icon-btn" id="outBtn" aria-label="${esc(pack('signOut', L))}">⏻</button>
       </div>
     </header>`);
   header.querySelector('#brandBtn')!.addEventListener('click', () => go('/' + home));
   header.querySelector('#rosterBtn')?.addEventListener('click', () => go('/roster'));
-  header.querySelector('#settingsBtn')!.addEventListener('click', () => go('/settings'));
+  header.querySelector('#settingsBtn')?.addEventListener('click', () => go('/settings'));
   header.querySelector('#outBtn')!.addEventListener('click', async () => {
     await signOut();
-    go('/login');
-    render();
+    // go() only redraws by way of hashchange, which does not fire if we are
+    // already on that hash. Render directly in that one case instead of always
+    // — rendering twice is what put two screens on top of each other.
+    if (location.hash === '#/login') void render();
+    else go('/login');
   });
   header.querySelector('#langBtn')!.addEventListener('click', async () => {
+    // The teacher's shell exists in two languages, so hers is a straight
+    // toggle. The child's app speaks twelve, and until now there was no way
+    // back to the picker once you were past login — so hers opens it.
+    if (!isTeacher) return go('/language');
     const cur = await getSettings();
     cur.lang = cur.lang === 'hi' ? 'en' : 'hi';
     await saveSettings(cur);
     setLang(cur.lang);
-    render();
+    void render();
   });
-  app.appendChild(header);
-  app.appendChild(main);
 
   const navScreen =
     target === 'result' ? 'check' : ['roster', 'settings'].includes(target) ? '' : target;
@@ -148,8 +168,8 @@ async function render(): Promise<void> {
   nav.querySelectorAll<HTMLElement>('[data-nav]').forEach((b) =>
     b.addEventListener('click', () => go('/' + b.dataset.nav))
   );
-  app.appendChild(nav);
 
+  app.replaceChildren(header, main, nav);
   await renderer(main, params);
   main.scrollTop = 0;
 }
