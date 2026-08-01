@@ -8,20 +8,18 @@
 // It is a home screen by design (§5): the phone is the gate before class and
 // the check after, never a device in the child's hands during a lesson (C1).
 //
-// Two languages are at work here and they are not the same one:
-//   L  — the language the child chose. Everything the APP says is in L, all
-//        twelve of them, including the explanation when a topic is one the
-//        app knows.
-//   C  — the script the teacher's own words are stored in, which the data
-//        model only carries in two. When C is not L the screen says so
-//        instead of quietly serving Hindi to a child who reads Tamil.
+// Everything the app says is in the child's own language. Content the teacher
+// typed may not be — a lesson drafted on the spot exists only in the language
+// it was drafted in — so it is read through translate(), which falls back
+// honestly, and the screen says when it had to.
 import { aiAvailable, aiExplainConcept } from '../ai';
 import { allChecks, allLessons } from '../db';
 import { getSettings } from '../db';
-import { conceptFor, contentScript, langDef, s, type L as PackLang } from '../packs';
+import { conceptFor, langDef } from '../packs';
+import { getLang, isFallback, t, translate, translateList } from '../i18n';
 import { currentStudent, getSession } from '../session';
 import { isSpeaking, speak, stopSpeak } from '../speech';
-import type { CheckRecord } from '../types';
+import type { CheckRecord, Lang } from '../types';
 import { el, esc } from '../ui';
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -30,10 +28,8 @@ export async function renderStudent(root: HTMLElement): Promise<void> {
   root.innerHTML = '';
   const session = await getSession();
   const me = await currentStudent();
-  const settings = await getSettings();
-  const L = settings.homeLang || settings.lang;
-  const C = contentScript(L);
-  const t = (k: string) => s(k, L);
+  await getSettings();
+  const L = getLang();
   const speechLang = langDef(L).speech;
 
   if (!me || !session) {
@@ -52,21 +48,24 @@ export async function renderStudent(root: HTMLElement): Promise<void> {
   const missed = mine.filter((c) => c.notUnderstoodIds.includes(me.id));
   const todaysLesson = lessons[0] ?? null;
 
-  // Say it plainly when the stored text is not in the child's own language.
-  const scriptNote = C === L ? '' : `<p class="tiny">${esc(t('teacherScript'))}</p>`;
+  // Say it plainly when the teacher's own text is not in the child's language.
+  const scriptNote =
+    todaysLesson && isFallback(todaysLesson.material)
+      ? `<p class="tiny">${esc(t('teacherScript'))}</p>`
+      : '';
 
   const screen = el(`
     <div>
       <div class="who-strip">
-        <span class="who-name">${esc(me.name[C])}</span>
+        <span class="who-name">${esc(translate(me.name))}</span>
         <span class="who-meta">${esc(t('yourClass'))} ${me.grade} · ${esc(t('yourRoll'))} ${me.roll}</span>
       </div>
 
       ${todaysLesson ? `
         <h3>${esc(t('myLesson'))}</h3>
         <div class="paper">
-          <p><b>${esc(todaysLesson.topicLabel[C])}</b></p>
-          ${todaysLesson.material[C].slice(0, 2).map((p) => `<p>${esc(p)}</p>`).join('')}
+          <p><b>${esc(translate(todaysLesson.topicLabel))}</b></p>
+          ${translateList(todaysLesson.material).slice(0, 2).map((p) => `<p>${esc(p)}</p>`).join('')}
         </div>
         ${scriptNote}` : ''}
 
@@ -83,23 +82,17 @@ export async function renderStudent(root: HTMLElement): Promise<void> {
   }
 
   for (const check of missed) {
-    gaps.appendChild(gapCard(check, L, C, t, speechLang));
+    gaps.appendChild(gapCard(check, L, speechLang));
   }
 }
 
-function gapCard(
-  check: CheckRecord,
-  L: string,
-  C: 'hi' | 'en',
-  t: (k: string) => string,
-  speechLang: string
-): HTMLElement {
+function gapCard(check: CheckRecord, L: Lang, speechLang: string): HTMLElement {
   const card = el(`
     <div class="gap-card">
-      <p class="gap-topic">${esc(check.topicLabel[C])}</p>
-      <p class="gap-q">${esc(check.questionText[C])}</p>
+      <p class="gap-topic">${esc(translate(check.topicLabel))}</p>
+      <p class="gap-q">${esc(translate(check.questionText))}</p>
       ${check.misconception
-        ? `<p class="gap-mis">${esc(check.misconception[C])}</p>`
+        ? `<p class="gap-mis">${esc(translate(check.misconception))}</p>`
         : ''}
       <div class="row">
         <button class="btn small" data-advice>💡 ${esc(t('getAdvice'))}</button>
@@ -118,11 +111,11 @@ function gapCard(
    */
   const offlineAdvice = (): string => {
     const concept = conceptFor(check.topicKey);
-    const own = concept?.explain[L as PackLang];
+    const own = concept?.explain[L];
     if (own) return own;
     return check.misconception
-      ? `${check.misconception[C]}. ${check.questionText[C]}`
-      : check.questionText[C];
+      ? `${translate(check.misconception)}. ${translate(check.questionText)}`
+      : translate(check.questionText);
   };
 
   const show = (text: string, offline: boolean) => {

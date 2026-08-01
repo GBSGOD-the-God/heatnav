@@ -7,15 +7,17 @@
 //   online  → the same OCR result, plus Claude explaining it properly
 // Every voice moment has a visible tap fallback (rule 7).
 import { aiAvailable, aiErrorKey, aiExplainPage, aiJudgeExplanation } from '../ai';
-import { getLang } from '../i18n';
+import { getLang, setLang, translate } from '../i18n';
 import { readPage } from '../ocr';
 import { LANGUAGES, langDef, matchConcept, s, type L } from '../packs';
+import { getSettings, saveSettings } from '../db';
 import { SAMPLE_PAGES, type SamplePage } from '../pages';
 import { canListen, isSpeaking, listen, speak, stopSpeak } from '../speech';
 import { summarise } from '../summarise';
+import type { Lang } from '../types';
 import { el, esc, toast } from '../ui';
 
-let lang: string = 'hi';
+let lang: Lang = 'hi';
 const speechLang = () => langDef(lang).speech;
 
 /** One shape for sample pages, OCR pages and AI pages alike. */
@@ -292,11 +294,10 @@ export async function renderHome(root: HTMLElement): Promise<void> {
   const ocrFill = screen.querySelector<HTMLElement>('#ocrFill')!;
 
   const paintSamples = () => {
-    const cl: 'hi' | 'en' = lang === 'en' ? 'en' : 'hi';
     screen.querySelector('#sampleList')!.innerHTML = SAMPLE_PAGES.map(
       (p) => `<button class="list-item" data-page="${p.id}">
-        <strong>${esc(p.title[cl])}</strong>
-        <span class="meta">${esc(p.bookLine[cl])}</span>
+        <strong>${esc(translate(p.title))}</strong>
+        <span class="meta">${esc(translate(p.bookLine))}</span>
       </button>`
     ).join('');
     screen.querySelectorAll<HTMLElement>('[data-page]').forEach((b) =>
@@ -318,15 +319,23 @@ export async function renderHome(root: HTMLElement): Promise<void> {
     paintSamples();
   };
 
+  // These chips used to set a variable local to this screen and nothing else,
+  // so the choice held until you navigated away and then silently reverted.
+  // They now change the app's one language and say so to everyone else.
   screen.querySelectorAll<HTMLElement>('[data-lang]').forEach((chip) =>
-    chip.addEventListener('click', () => {
-      lang = chip.dataset.lang!;
+    chip.addEventListener('click', async () => {
+      lang = chip.dataset.lang as Lang;
+      const cur = await getSettings();
+      await saveSettings({ ...cur, lang });
+      setLang(lang);
       screen.querySelectorAll('[data-lang]').forEach((c) => c.classList.toggle('active', c === chip));
       repaintLabels();
       if (openSampleId) {
         const page = SAMPLE_PAGES.find((p) => p.id === openSampleId)!;
         pageView(root, resolveSample(page));
       }
+      // The header and the navigation bar live outside this screen.
+      window.dispatchEvent(new Event('pata:lang'));
     })
   );
 

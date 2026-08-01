@@ -3,12 +3,27 @@
 // model. Checks, actions, reports and aggregates describe CONTENT — topics,
 // misconceptions, counts — never the adult in the room.
 
-export type Lang = 'hi' | 'en';
+/** The twelve languages the app speaks (C7). There is exactly one of these in
+ *  play at a time — there used to be two, a "shell" language that only had
+ *  Hindi and English and a separate student language, which is why choosing
+ *  Malayalam used to survive one screen and then evaporate. */
+export type Lang =
+  | 'hi' | 'en' | 'mr' | 'bn' | 'ta' | 'te'
+  | 'kn' | 'ml' | 'gu' | 'or' | 'pa' | 'as';
 
-export interface Bi {
-  hi: string;
-  en: string;
-}
+/**
+ * A piece of text in as many of the twelve as we have it.
+ *
+ * Hindi and English are required because every path can fall back to them; the
+ * other ten are optional so a lesson typed by a teacher, or generated live,
+ * is still valid data. Read it through translate() in i18n.ts, never by
+ * indexing a language directly — that is what stranded English text under
+ * Malayalam headings.
+ */
+export type Bi = { hi: string; en: string } & Partial<Record<Lang, string>>;
+
+/** The same, for a list of paragraphs. */
+export type BiList = { hi: string[]; en: string[] } & Partial<Record<Lang, string[]>>;
 
 export type OptionKey = 'A' | 'B' | 'C' | 'D';
 
@@ -30,7 +45,7 @@ export interface Lesson {
   topicLabel: Bi;
   subject: Bi;
   gradeBand: string;
-  material: { hi: string[]; en: string[] };
+  material: BiList;
   questions: Question[];
   /** 'ai' = generated live by Claude; 'bank' = curated offline set; 'draft' = skeleton the teacher edits. */
   source: 'ai' | 'bank' | 'draft';
@@ -103,9 +118,11 @@ export interface AggregateRow {
 }
 
 export interface Settings {
+  /** The one language everything is shown in. */
   lang: Lang;
-  /** Student-side explanation language for the Home screen. */
-  homeLang: string;
+  /** Retired: there is no separate student-side language any more. Kept only
+   *  so an install made before the merge can be migrated on first load. */
+  homeLang?: string;
   /** Set once the language has been chosen, so onboarding is not shown again. */
   languageChosen?: boolean;
 }

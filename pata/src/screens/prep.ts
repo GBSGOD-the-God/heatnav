@@ -1,8 +1,9 @@
 import { aiAvailable, aiErrorKey, aiGenerateLesson } from '../ai';
 import { BANK, findBankTopic } from '../bank';
+import { langDef } from '../packs';
 import { allActions, allChecks, allLessons, saveLesson } from '../db';
 import { generateLesson } from '../generator';
-import { bi, getLang, t } from '../i18n';
+import { bi, getLang, t, translate, translateList } from '../i18n';
 import { canListen, listen } from '../speech';
 import type { Lesson, OptionKey, Question } from '../types';
 import { el, esc, go, toast } from '../ui';
@@ -42,9 +43,9 @@ function questionCard(lesson: Lesson, qi: number): HTMLElement {
       </div>
       <button class="link-btn edit-btn">${esc(t('prepEditHint'))}</button>
       <form class="q-edit" hidden>
-        <label>${qi + 1}. <input name="qtext" value="${esc(q.text[lang])}" /></label>
+        <label>${qi + 1}. <input name="qtext" value="${esc(translate(q.text, lang))}" /></label>
         ${KEYS.map(
-          (k) => `<label><span class="opt-key">${k}</span><input name="opt${k}" value="${esc(q.options[k].text[lang])}" /></label>`
+          (k) => `<label><span class="opt-key">${k}</span><input name="opt${k}" value="${esc(translate(q.options[k].text, lang))}" /></label>`
         ).join('')}
         <div class="row">
           <button type="submit" class="btn small">${esc(t('save'))}</button>
@@ -79,7 +80,7 @@ function lessonView(root: HTMLElement, lesson: Lesson): void {
       ${lesson.source === 'draft' ? `<p class="note">${esc(t('prepDraftNote'))}</p>` : ''}
       <h3>${esc(t('prepMaterial'))}</h3>
       <div class="paper">
-        ${lesson.material[getLang()].map((p) => `<p>${esc(p)}</p>`).join('')}
+        ${translateList(lesson.material).map((para) => `<p>${esc(para)}</p>`).join('')}
       </div>
       <h3>${esc(t('prepQuestions'))}</h3>
       <div id="qList"></div>
@@ -186,7 +187,7 @@ export async function renderPrep(root: HTMLElement): Promise<void> {
     }
     voiceNote.textContent = t('prepListening');
     try {
-      const heard = await listen(getLang() === 'hi' ? 'hi-IN' : 'en-IN');
+      const heard = await listen(langDef(getLang()).speech);
       input.value = heard;
       voiceNote.textContent = t('voiceFallbackNote');
       makeLesson(heard);

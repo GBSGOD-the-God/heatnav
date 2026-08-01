@@ -7,7 +7,10 @@
 // Anything not in the pack still works — the page is read aloud from the OCR
 // text in the child's script, which is the part a struggling reader needs most.
 
-export type L = 'hi' | 'en' | 'mr' | 'bn' | 'ta' | 'te' | 'kn' | 'ml' | 'gu' | 'or' | 'pa' | 'as';
+import type { Lang } from './types';
+
+/** Kept as a local name for readability; there is only one language type. */
+export type L = Lang;
 
 export interface LangDef {
   code: L;
@@ -500,22 +503,6 @@ export function s(key: string, lang: string): string {
   const row = S[key];
   if (!row) return key;
   return row[lang as L] ?? row.en;
-}
-
-/**
- * Which script to show stored lesson text in.
- *
- * Everything the APP says exists in all twelve languages. What the TEACHER
- * typed exists only in the two the data model carries — so for the other ten
- * we have to pick one of those two, and the honest question is which the child
- * has a better chance of reading. Marathi is written in the same Devanagari as
- * Hindi, so it gets Hindi. Everyone else gets Latin, which is taught in every
- * state and is far likelier to be legible to a Tamil or Malayalam reader than
- * Devanagari is. Whenever this differs from the chosen language, the screen
- * says so rather than pretending the text was meant for them.
- */
-export function contentScript(code: string): 'hi' | 'en' {
-  return code === 'hi' || code === 'mr' ? 'hi' : 'en';
 }
 
 /** The bundled explanation for a topic key, in all twelve languages. This is

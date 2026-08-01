@@ -9,11 +9,15 @@
 import { Share } from '@capacitor/share';
 import { allReports, getSettings, saveReport, uid } from '../db';
 import { getLang, t } from '../i18n';
+import { langDef } from '../packs';
 import { findNumbers, normaliseDigits, parseSingleNumber } from '../numbers';
 import { canListen, listenAll } from '../speech';
 import type { DailyReport } from '../types';
 import { el, esc, go, toast } from '../ui';
 
+/** Only the two languages whose spoken number WORDS the parser knows; the
+ *  demo button falls back to one of them. Digits typed or spoken as numerals
+ *  are understood in every Indian script (see normaliseDigits). */
 const SAMPLE_SENTENCE: Record<'hi' | 'en', string> = {
   hi: 'आज चौंतीस बच्चे उपस्थित रहे, भोजन बत्तीस को मिला, दो जाँचें पूरी हुईं, विषय हासिल वाला घटाव',
   en: 'Today thirty four children were present, meals went to thirty two, two checks completed, topic subtraction with borrowing',
@@ -80,7 +84,7 @@ export async function renderReport(root: HTMLElement): Promise<void> {
   root.innerHTML = '';
   await getSettings();
   const lang = getLang();
-  const speechLocale = lang === 'hi' ? 'hi-IN' : 'en-IN';
+  const speechLocale = langDef(lang).speech;
 
   const numField = (name: string, label: string) => `
     <label>${esc(label)}
@@ -209,7 +213,7 @@ export async function renderReport(root: HTMLElement): Promise<void> {
   });
 
   screen.querySelector('#demoBtn')!.addEventListener('click', () => {
-    const sentence = SAMPLE_SENTENCE[lang];
+    const sentence = SAMPLE_SENTENCE[lang === 'en' ? 'en' : 'hi'];
     fillFrom(parseReportSpeech(sentence));
     heard.hidden = false;
     heard.textContent = `${t('reportHeard')} “${sentence}”`;

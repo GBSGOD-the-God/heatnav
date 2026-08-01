@@ -38,9 +38,24 @@ export async function kvSet(key: string, value: unknown): Promise<void> {
 }
 
 // --- settings ---
-const DEFAULT_SETTINGS: Settings = { lang: 'hi', homeLang: 'hi' };
+const DEFAULT_SETTINGS: Settings = { lang: 'hi' };
+
+/**
+ * Installs made before the two language settings were merged stored the real
+ * choice in homeLang and a Hindi-or-English stand-in in lang. Carry the real
+ * one forward, or an existing user who had picked Malayalam would silently
+ * find themselves back in Hindi after updating.
+ */
 export async function getSettings(): Promise<Settings> {
-  return (await kvGet<Settings>('settings')) ?? { ...DEFAULT_SETTINGS };
+  const stored = await kvGet<Settings>('settings');
+  if (!stored) return { ...DEFAULT_SETTINGS };
+  if (stored.homeLang && stored.homeLang !== stored.lang) {
+    const migrated: Settings = { ...stored, lang: stored.homeLang as Settings['lang'] };
+    delete migrated.homeLang;
+    await kvSet('settings', migrated);
+    return migrated;
+  }
+  return stored;
 }
 export async function saveSettings(s: Settings): Promise<void> {
   await kvSet('settings', s);

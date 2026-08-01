@@ -1,6 +1,6 @@
 import './style.css';
-import { getSettings, saveSettings } from './db';
-import { getLang, setLang, t } from './i18n';
+import { getSettings } from './db';
+import { setLang, t } from './i18n';
 import { ensureSeeded } from './seed';
 import { el, esc, go } from './ui';
 import { renderPrep } from './screens/prep';
@@ -15,7 +15,6 @@ import { renderLanguage, renderLogin } from './screens/onboard';
 import { renderStudent } from './screens/student';
 import { renderWrite } from './screens/write';
 import { getSession, signOut } from './session';
-import { s as pack } from './packs';
 import { stopSpeak } from './speech';
 
 type Renderer = (root: HTMLElement, params: URLSearchParams) => Promise<void> | void;
@@ -38,10 +37,9 @@ const ROUTES: Record<string, Renderer> = {
 /** Screens each role is allowed to open. A child must never reach the class's
  *  marks, and the teacher's screens are no use to them (§5). */
 const TEACHER_SCREENS = ['prep', 'check', 'result', 'insight', 'report', 'home', 'roster', 'settings', 'write'];
-// No Settings for the child. It configures a district's AI server and exists
-// only in Hindi and English — a wall of a script they may not read, guarding a
-// setting that is not theirs to make. The address is stored per device, so the
-// teacher setting it once covers the child on the same phone.
+// No Settings for the child: it configures a district's AI server, which is
+// not theirs to set. The address is stored per device, so the teacher setting
+// it once covers the child on the same phone.
 const STUDENT_SCREENS = ['my', 'home', 'write'];
 
 const TEACHER_NAV: Array<[string, string, string]> = [
@@ -116,7 +114,6 @@ async function render(): Promise<void> {
   const target = allowed.includes(screen) ? screen : home;
   const renderer = ROUTES[target] ?? (isTeacher ? renderPrep : renderStudent);
 
-  const L = settings.homeLang || settings.lang;
   const header = el(`
     <header class="topbar">
       <button class="brand" id="brandBtn" aria-label="PATA">
@@ -125,10 +122,10 @@ async function render(): Promise<void> {
       </button>
       ${isTeacher ? `<span class="sample-badge">${esc(t('sampleBadge'))}</span>` : ''}
       <div class="topbar-actions">
-        <button class="icon-btn" id="langBtn" aria-label="${esc(pack('pickLanguage', L))}">${isTeacher ? (getLang() === 'hi' ? 'En' : 'हि') : 'भा'}</button>
+        <button class="icon-btn" id="langBtn" aria-label="${esc(t('pickLanguage'))}">🌐</button>
         ${isTeacher ? `<button class="icon-btn" id="rosterBtn" aria-label="${esc(t('rosterTitle'))}">☷</button>` : ''}
         ${isTeacher ? `<button class="icon-btn" id="settingsBtn" aria-label="${esc(t('settingsTitle'))}">⚙</button>` : ''}
-        <button class="icon-btn" id="outBtn" aria-label="${esc(pack('signOut', L))}">⏻</button>
+        <button class="icon-btn" id="outBtn" aria-label="${esc(t('signOut'))}">⏻</button>
       </div>
     </header>`);
   header.querySelector('#brandBtn')!.addEventListener('click', () => go('/' + home));
@@ -142,17 +139,11 @@ async function render(): Promise<void> {
     if (location.hash === '#/login') void render();
     else go('/login');
   });
-  header.querySelector('#langBtn')!.addEventListener('click', async () => {
-    // The teacher's shell exists in two languages, so hers is a straight
-    // toggle. The child's app speaks twelve, and until now there was no way
-    // back to the picker once you were past login — so hers opens it.
-    if (!isTeacher) return go('/language');
-    const cur = await getSettings();
-    cur.lang = cur.lang === 'hi' ? 'en' : 'hi';
-    await saveSettings(cur);
-    setLang(cur.lang);
-    void render();
-  });
+  // One button, one meaning, for both roles: choose from all twelve. It used
+  // to be a Hindi/English toggle for the teacher, which is precisely why her
+  // language appeared to reset the moment she left the screen that honoured
+  // her real choice.
+  header.querySelector('#langBtn')!.addEventListener('click', () => go('/language'));
 
   const navScreen =
     target === 'result' ? 'check' : ['roster', 'settings'].includes(target) ? '' : target;
@@ -161,7 +152,7 @@ async function render(): Promise<void> {
     `<nav class="bottombar">${NAV.map(
       ([key, label, icon]) =>
         `<button class="nav-item ${key === navScreen ? 'active' : ''}" data-nav="${key}">
-          <span class="nav-icon">${icon}</span><span>${esc(isTeacher ? t(label) : pack(label, L))}</span>
+          <span class="nav-icon">${icon}</span><span>${esc(t(label))}</span>
         </button>`
     ).join('')}</nav>`
   );
@@ -179,6 +170,9 @@ async function boot(): Promise<void> {
   const settings = await getSettings();
   setLang(settings.lang);
   window.addEventListener('hashchange', render);
+  // The Home screen can change the language from inside the page; the header
+  // and the navigation bar are outside it and have to be redrawn too.
+  window.addEventListener('pata:lang', () => void render());
   await render();
 }
 

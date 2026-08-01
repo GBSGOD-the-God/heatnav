@@ -12,7 +12,7 @@ import { Share } from '@capacitor/share';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Capacitor } from '@capacitor/core';
 import { getSettings, kvGet, kvSet } from '../db';
-import { s } from '../packs';
+import { t } from '../i18n';
 import { blobToDataUrl, makePdf } from '../pdf';
 import { getSession } from '../session';
 import { el, esc, toast } from '../ui';
@@ -25,10 +25,8 @@ interface Draft {
 
 export async function renderWrite(root: HTMLElement): Promise<void> {
   root.innerHTML = '';
-  const settings = await getSettings();
+  await getSettings();
   const session = await getSession();
-  const L = settings.homeLang || settings.lang;
-  const t = (k: string) => s(k, L);
 
   const key = session?.role === 'teacher' ? 'draft:teacher' : 'draft:student';
   const saved = (await kvGet<Draft>(key)) ?? { title: '', body: '', savedAt: 0 };

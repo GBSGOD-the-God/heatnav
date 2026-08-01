@@ -47,8 +47,32 @@ const EN_TENS: Record<string, number> = {
 };
 
 /** Devanagari digits → ASCII. Recognisers mix scripts freely. */
+/**
+ * Indic digit blocks, in the order of the twelve languages that use them.
+ * A recogniser set to ta-IN or ml-IN returns numerals in that script, and a
+ * parser looking only for ASCII or Devanagari would find nothing at all —
+ * which is the report screen refusing to fill for eight of the twelve.
+ */
+const DIGIT_ZEROS = [
+  0x0966, // Devanagari — Hindi, Marathi
+  0x09E6, // Bengali — Bengali, Assamese
+  0x0A66, // Gurmukhi — Punjabi
+  0x0AE6, // Gujarati
+  0x0B66, // Odia
+  0x0BE6, // Tamil
+  0x0C66, // Telugu
+  0x0CE6, // Kannada
+  0x0D66, // Malayalam
+];
+
 export function normaliseDigits(text: string): string {
-  return text.replace(/[०-९]/g, (d) => String('०१२३४५६७८९'.indexOf(d)));
+  return text.replace(/[\u0966-\u0D6F]/g, (d) => {
+    const code = d.codePointAt(0)!;
+    for (const zero of DIGIT_ZEROS) {
+      if (code >= zero && code <= zero + 9) return String(code - zero);
+    }
+    return d;
+  });
 }
 
 export interface FoundNumber {

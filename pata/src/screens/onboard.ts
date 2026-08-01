@@ -9,8 +9,8 @@
 // their own school register — class, roll number, name — and it is matched
 // against the roster already on the device.
 import { getSettings, saveSettings } from '../db';
-import { setLang } from '../i18n';
-import { LANGUAGES, s } from '../packs';
+import { s, setLang, t as tr } from '../i18n';
+import { LANGUAGES } from '../packs';
 import { DEMO_TEACHERS, loginStudent, loginTeacher } from '../session';
 import type { Lang } from '../types';
 import { el, esc, go } from '../ui';
@@ -36,11 +36,10 @@ export async function renderLanguage(root: HTMLElement): Promise<void> {
 
   screen.querySelectorAll<HTMLElement>('[data-lang]').forEach((tile) =>
     tile.addEventListener('click', async () => {
-      const code = tile.dataset.lang!;
-      // The shell itself only ships hi/en; the student side speaks all 12.
-      const shell: Lang = code === 'en' ? 'en' : 'hi';
-      await saveSettings({ ...settings, lang: shell, homeLang: code, languageChosen: true });
-      setLang(shell);
+      // One language, applied everywhere. Nothing else to reconcile.
+      const code = tile.dataset.lang as Lang;
+      await saveSettings({ ...settings, lang: code, languageChosen: true });
+      setLang(code);
       go('/login');
     })
   );
@@ -49,9 +48,8 @@ export async function renderLanguage(root: HTMLElement): Promise<void> {
 /** Screen 2 — who is holding the phone. */
 export async function renderLogin(root: HTMLElement): Promise<void> {
   root.innerHTML = '';
-  const settings = await getSettings();
-  const L = settings.homeLang || settings.lang;
-  const t = (k: string) => s(k, L);
+  await getSettings();
+  const t = tr;
 
   const screen = el(`
     <div class="onboard">
