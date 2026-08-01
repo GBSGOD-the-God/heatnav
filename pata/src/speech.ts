@@ -103,32 +103,106 @@ export async function listen(lang: string, timeoutMs = 10000): Promise<string> {
 }
 
 // --- Text to speech ---
+//
+// Android hands you whatever voice its default engine happens to have for a
+// locale, and the default is often the low-footprint one that ships with the
+// phone — flat, clipped, and hard to follow for a child who is already
+// struggling with the words. Three things make it markedly better, none of
+// which need a network or a paid service:
+//
+//   1. Pick the voice deliberately. A locale like ta-IN can have several
+//      installed voices of very different quality; the engine's first match is
+//      not the best one. Prefer an exact language+country match, then a
+//      non-default network voice, which on Android means the higher-quality
+//      downloaded one rather than the compact fallback.
+//   2. Speak sentence by sentence. Long strings get truncated by some engines
+//      and lose their intonation on nearly all of them; a sentence at a time
+//      keeps the phrasing and lets stop() actually stop.
+//   3. Slow down a little. 0.9 is noticeably easier to follow than 1.0 for a
+//      reader who is decoding as they listen, without sounding sluggish.
 let speaking = false;
+let cachedVoices: SpeechSynthesisVoice[] = [];
+
+/** Split on sentence ends across all twelve scripts — Devanagari/Bengali/Odia
+ *  danda included, since none of these end sentences with a full stop. */
+function sentences(text: string): string[] {
+  return text
+    .split(/(?<=[.!?।॥])\s+|\n+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+/** Android's own list, best first. */
+async function bestNativeVoice(lang: string): Promise<number | undefined> {
+  try {
+    const { voices } = await TextToSpeech.getSupportedVoices();
+    const want = lang.toLowerCase();
+    const base = want.slice(0, 2);
+    const score = (v: { lang?: string; name?: string; networkConnectionRequired?: boolean }) => {
+      const vl = (v.lang ?? '').toLowerCase().replace('_', '-');
+      if (vl !== want && !vl.startsWith(base)) return -1;
+      let n = vl === want ? 2 : 1;
+      // Compact voices are the small preinstalled ones; anything else on the
+      // device was downloaded deliberately and sounds better.
+      if (!/#?compact|-local\b/i.test(v.name ?? '')) n += 2;
+      if (v.networkConnectionRequired) n += 1;
+      return n;
+    };
+    let best = -1;
+    let at: number | undefined;
+    voices.forEach((v, i) => {
+      const n = score(v);
+      if (n > best) { best = n; at = i; }
+    });
+    return best > 0 ? at : undefined;
+  } catch {
+    return undefined; // older plugin, or an engine that will not enumerate
+  }
+}
 
 export async function speak(text: string, lang: string): Promise<void> {
   await stopSpeak();
   speaking = true;
+  const parts = sentences(text);
+
   if (isNative) {
+    const voice = await bestNativeVoice(lang);
     try {
-      await TextToSpeech.speak({ text, lang, rate: 0.95 });
+      for (const part of parts) {
+        if (!speaking) return; // stopSpeak() ran while the last sentence played
+        await TextToSpeech.speak({ text: part, lang, rate: 0.9, ...(voice != null ? { voice } : {}) });
+      }
     } finally {
       speaking = false;
     }
     return;
   }
+
   if (!('speechSynthesis' in window)) {
     speaking = false;
     return;
   }
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = lang;
-  u.rate = 0.95;
+  // getVoices() is empty until the engine has loaded; keep the last good list.
   const voices = speechSynthesis.getVoices();
-  const match = voices.find((v) => v.lang.toLowerCase().startsWith(lang.toLowerCase().slice(0, 2)));
-  if (match) u.voice = match;
-  u.onend = () => (speaking = false);
-  u.onerror = () => (speaking = false);
-  speechSynthesis.speak(u);
+  if (voices.length) cachedVoices = voices;
+  const want = lang.toLowerCase();
+  const base = want.slice(0, 2);
+  const match =
+    cachedVoices.find((v) => v.lang.toLowerCase().replace('_', '-') === want && !v.localService) ??
+    cachedVoices.find((v) => v.lang.toLowerCase().replace('_', '-') === want) ??
+    cachedVoices.find((v) => v.lang.toLowerCase().startsWith(base));
+
+  parts.forEach((part, i) => {
+    const u = new SpeechSynthesisUtterance(part);
+    u.lang = lang;
+    u.rate = 0.9;
+    if (match) u.voice = match;
+    if (i === parts.length - 1) {
+      u.onend = () => (speaking = false);
+      u.onerror = () => (speaking = false);
+    }
+    speechSynthesis.speak(u);
+  });
 }
 
 export async function stopSpeak(): Promise<void> {

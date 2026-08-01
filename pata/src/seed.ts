@@ -1,6 +1,7 @@
 // One fictional class — 38 children, grades 5–7, ability spread across seven
 // levels (C4). Always presented as labelled sample data (§12).
 import { BANK } from './bank';
+import { localiseBi } from './content-i18n';
 import { DEMO_SCHOOL } from './session';
 import { kvGet, kvSet, replaceRoster, saveCheck, saveLesson } from './db';
 import type { AggregateRow, CheckRecord, Lesson, Student } from './types';
@@ -91,7 +92,7 @@ function sampleChecks(students: Student[]): CheckRecord[] {
 }
 
 /** School/district content-level rows — labelled sample data. No people. */
-export const SAMPLE_AGGREGATES: AggregateRow[] = [
+const SAMPLE_AGGREGATES_HI_EN: AggregateRow[] = [
   { scope: 'school', topicLabel: { hi: 'भिन्न की तुलना', en: 'Comparing fractions' }, subject: { hi: 'गणित', en: 'Maths' }, grade: '5–6', checks: 14, confusedPct: 61, topMisconception: { hi: 'नीचे की संख्या बड़ी तो भिन्न बड़ा — यह उल्टा समझा', en: 'thinks a bigger denominator means a bigger fraction' } },
   { scope: 'school', topicLabel: { hi: 'प्रकाश संश्लेषण', en: 'Photosynthesis' }, subject: { hi: 'विज्ञान', en: 'Science' }, grade: '6–7', checks: 11, confusedPct: 57, topMisconception: { hi: 'मानता है कि मिट्टी से बना-बनाया भोजन आता है', en: 'believes food comes ready-made from the soil' } },
   { scope: 'school', topicLabel: { hi: 'हासिल वाला घटाव', en: 'Subtraction with borrowing' }, subject: { hi: 'गणित', en: 'Maths' }, grade: '4–5', checks: 19, confusedPct: 48, topMisconception: { hi: 'हासिल लिया पर दहाई घटाना भूले', en: 'borrowed but did not decrement the tens' } },
@@ -124,6 +125,13 @@ function sampleLesson(): Lesson {
     createdAt: Date.now() - 24 * 60 * 60 * 1000,
   };
 }
+
+export const SAMPLE_AGGREGATES: AggregateRow[] = SAMPLE_AGGREGATES_HI_EN.map((r) => ({
+  ...r,
+  topicLabel: localiseBi(r.topicLabel),
+  subject: localiseBi(r.subject),
+  topMisconception: localiseBi(r.topMisconception),
+}));
 
 export async function ensureSeeded(): Promise<void> {
   if (await kvGet<boolean>('seeded')) return;

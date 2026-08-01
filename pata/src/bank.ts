@@ -1,7 +1,8 @@
 // Curated diagnostic bank. Every distractor encodes one specific, named
 // misconception (spec §4) — the result screen reports the misconception,
 // never the letter. Runs fully offline; no model call needed for the demo.
-import type { Bi, Question } from './types';
+import { localiseBi, localiseList } from './content-i18n';
+import type { Bi, BiList, Question } from './types';
 
 export interface BankTopic {
   key: string;
@@ -9,11 +10,11 @@ export interface BankTopic {
   label: Bi;
   subject: Bi;
   gradeBand: string;
-  material: { hi: string[]; en: string[] };
+  material: BiList;
   questions: Question[];
 }
 
-export const BANK: BankTopic[] = [
+const BANK_HI_EN: BankTopic[] = [
   {
     key: 'sub-borrow',
     match: ['घटा', 'हासिल', 'subtract', 'borrow', 'minus', 'उधार'],
@@ -261,6 +262,32 @@ export const BANK: BankTopic[] = [
     ],
   },
 ];
+
+/**
+ * The bank is written in Hindi and English, because that is the pair the data
+ * model guarantees everywhere. The other ten come from content-i18n.ts and are
+ * folded in here, once, at load — so every reader of BANK (prep, check, the
+ * child's screen, the seed) gets all twelve without knowing this happened.
+ */
+export const BANK: BankTopic[] = BANK_HI_EN.map((topic) => ({
+  ...topic,
+  label: localiseBi(topic.label),
+  subject: localiseBi(topic.subject),
+  material: localiseList(topic.material) as BiList,
+  questions: topic.questions.map((q) => ({
+    text: localiseBi(q.text),
+    options: Object.fromEntries(
+      (['A', 'B', 'C', 'D'] as const).map((k) => [
+        k,
+        {
+          ...q.options[k],
+          text: localiseBi(q.options[k].text),
+          ...(q.options[k].mis ? { mis: localiseBi(q.options[k].mis!) } : {}),
+        },
+      ])
+    ) as Question['options'],
+  })),
+}));
 
 export function findBankTopic(input: string): BankTopic | null {
   const q = input.toLowerCase().trim();
