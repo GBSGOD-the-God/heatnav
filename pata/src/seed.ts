@@ -1,6 +1,7 @@
 // One fictional class — 38 children, grades 5–7, ability spread across seven
 // levels (C4). Always presented as labelled sample data (§12).
 import { BANK } from './bank';
+import { DEMO_SCHOOL } from './session';
 import { kvGet, kvSet, replaceRoster, saveCheck } from './db';
 import type { AggregateRow, CheckRecord, Student } from './types';
 
@@ -38,6 +39,10 @@ export function buildRoster(names: Array<[string, string]> = NAMES): Student[] {
     grade: 5 + (i % 3),
     level: levels[i % levels.length] ?? 4,
     seat: { row: Math.floor(i / 6), col: i % 6 },
+    // Roll numbers restart within each grade, as a real register does — so a
+    // child logging in gives grade + roll, which together are unique.
+    roll: Math.floor(i / 3) + 1,
+    school: DEMO_SCHOOL,
   }));
 }
 

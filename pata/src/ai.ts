@@ -156,6 +156,23 @@ export function aiJudgeExplanation(
   }, 30_000);
 }
 
+/** For a child who missed a question: explain the idea and say what to do
+ *  about it, addressed to them, in their language. */
+export async function aiExplainConcept(
+  topic: string,
+  question: string,
+  misconception: string,
+  languageName: string
+): Promise<string> {
+  const r = await call<{ advice: string }>('/advise', {
+    topic,
+    question,
+    misconception,
+    language: languageName,
+  }, 45_000);
+  return r.advice;
+}
+
 /** Map a failure to a short i18n key. Everything here is non-fatal. */
 export function aiErrorKey(e: unknown): string {
   const m = e instanceof Error ? e.message : '';

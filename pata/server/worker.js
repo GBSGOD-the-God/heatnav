@@ -107,6 +107,10 @@ everyday analogy, written to be read aloud. concepts = 2 key ideas the child sho
 (wrong:true, keywords []). If the image is not a book or notebook page, or contains a person, say so briefly in
 explanation and return empty pageLines and concepts.`;
 
+const adviseSystem = (language) => `A schoolchild (age 9-13) got a question wrong in class today. You are speaking directly TO THE CHILD in ${language}, warmly, never scolding.
+Return ONLY a JSON object: {"advice":""}
+advice = 4-7 short sentences in ${language}: name what went wrong in plain words a child understands, explain the idea correctly using one everyday analogy (rupees, rotis, buckets — things in an Indian village home), then give ONE concrete thing to try right now. Written to be read aloud. No headings, no lists, no jargon.`;
+
 const judgeSystem = (language) => `A child is explaining back a textbook page they just studied.
 Return ONLY a JSON object: {"verdict":"good"|"partial"|"missing","feedback":""}
 Judge SEMANTICALLY and TOLERANTLY: did the key concepts appear in any words, any mix of languages, however clumsy?
@@ -193,6 +197,21 @@ async function handlePage(env, body) {
   return out.error ? json({ error: out.error }, 502) : json(out.data);
 }
 
+async function handleAdvise(env, body) {
+  const topic = String(body.topic ?? '').slice(0, 200);
+  const question = String(body.question ?? '').slice(0, 500);
+  const misconception = String(body.misconception ?? '').slice(0, 300);
+  const language = String(body.language ?? 'Hindi').slice(0, 40);
+  if (!topic && !question) return json({ error: 'notopic' }, 400);
+  const out = await askMistral(env, {
+    model: env.TEXT_MODEL || DEFAULT_TEXT_MODEL,
+    system: adviseSystem(language),
+    user: `Topic: ${topic}\nQuestion they got wrong: ${question}\nTheir mistake: ${misconception || 'not recorded'}`,
+    maxTokens: 900,
+  });
+  return out.error ? json({ error: out.error }, 502) : json(out.data);
+}
+
 async function handleJudge(env, body) {
   const page = String(body.page ?? '').slice(0, 2000);
   const concepts = Array.isArray(body.concepts)
@@ -274,6 +293,7 @@ export default {
     switch (path) {
       case '/lesson': return handleLesson(env, body);
       case '/page':   return handlePage(env, body);
+      case '/advise': return handleAdvise(env, body);
       case '/judge':  return handleJudge(env, body);
       default:        return json({ error: 'notfound' }, 404);
     }

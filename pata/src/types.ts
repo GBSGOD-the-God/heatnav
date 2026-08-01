@@ -44,6 +44,11 @@ export interface Student {
   /** Ability level 1–7 — one classroom spans seven grade-levels (C4). */
   level: number;
   seat: { row: number; col: number };
+  /** Roll number — how a child is actually identified in an Indian school
+   *  register, and what they log in with at home. */
+  roll: number;
+  /** School the roster belongs to. Kept on the device; never transmitted. */
+  school: string;
 }
 
 export interface CheckRecord {
@@ -101,4 +106,27 @@ export interface Settings {
   lang: Lang;
   /** Student-side explanation language for the Home screen. */
   homeLang: string;
+  /** Set once the language has been chosen, so onboarding is not shown again. */
+  languageChosen?: boolean;
+}
+
+/** Who is using the phone right now.
+ *
+ *  Deliberately not an account: no password, no server, no sign-up. Logging in
+ *  only matches what the child or teacher already knows against the roster
+ *  already on this device. Nothing identifying is transmitted, which is what
+ *  keeps a register of minors' details out of the aggregation model (C6, C8).
+ */
+export interface Session {
+  role: 'teacher' | 'student';
+  /** Student id from the roster, when role is student. */
+  studentId?: string;
+  /** Display name for whoever is signed in. */
+  name: string;
+  /** Teacher id as printed on their service record, when role is teacher. */
+  teacherId?: string;
+  school: string;
+  grade?: number;
+  roll?: number;
+  since: number;
 }

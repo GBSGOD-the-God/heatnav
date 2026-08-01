@@ -12,7 +12,7 @@ import { getLang, t } from '../i18n';
 import { findNumbers, normaliseDigits, parseSingleNumber } from '../numbers';
 import { canListen, listenAll } from '../speech';
 import type { DailyReport } from '../types';
-import { el, esc, toast } from '../ui';
+import { el, esc, go, toast } from '../ui';
 
 const SAMPLE_SENTENCE: Record<'hi' | 'en', string> = {
   hi: 'आज चौंतीस बच्चे उपस्थित रहे, भोजन बत्तीस को मिला, दो जाँचें पूरी हुईं, विषय हासिल वाला घटाव',
@@ -116,9 +116,19 @@ export async function renderReport(root: HTMLElement): Promise<void> {
         <button type="button" class="btn big" id="shareBtn">📤 ${esc(t('reportShare'))}</button>
         <p class="tiny center">${esc(t('reportNeverAuto'))} · ${esc(t('reportShareHint'))}</p>
       </form>
+      <details class="advanced" id="freeReport">
+        <summary>${esc(t('reportFreeTitle'))}</summary>
+        <p class="sub small">${esc(t('reportFreeHint'))}</p>
+        <button class="btn big" id="freeBtn">✎ ${esc(t('reportFreeOpen'))}</button>
+      </details>
+
       <div id="past"></div>
     </div>`);
   root.appendChild(screen);
+
+  // Anything the fixed form does not cover — an incident, a request, a note to
+  // the BRC — goes in the free-form writer, which exports a PDF.
+  screen.querySelector('#freeBtn')!.addEventListener('click', () => go('/write'));
 
   const form = screen.querySelector<HTMLFormElement>('#reportForm')!;
   const heard = screen.querySelector<HTMLElement>('#heard')!;

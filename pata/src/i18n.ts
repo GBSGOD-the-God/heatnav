@@ -116,6 +116,12 @@ const S: Record<string, Bi> = {
   // Report
   reportTitle: { hi: 'आज की रिपोर्ट', en: "Today's report" },
   reportHint: { hi: 'बोलिए — फ़ॉर्म खुद भर जाएगा। जमा आप ही करेंगी।', en: 'Speak — the form drafts itself. You review and submit.' },
+  reportFreeTitle: { hi: 'और कोई रिपोर्ट लिखनी है?', en: 'Need to write another report?' },
+  reportFreeHint: {
+    hi: 'ऊपर वाला फ़ॉर्म रोज़ के आँकड़ों के लिए है। इसके अलावा कुछ भी — घटना, माँग, BRC को पत्र — यहाँ लिखकर PDF बनाकर भेजें।',
+    en: 'The form above is for the daily counts. Anything else — an incident, a request, a letter to the BRC — write it here and send it as a PDF.',
+  },
+  reportFreeOpen: { hi: 'खुली रिपोर्ट लिखें', en: 'Write a free report' },
   reportSpeakAll: { hi: 'पूरा वाक्य बोलें', en: 'Speak the whole sentence' },
   reportFieldMicHint: {
     hi: 'सबसे आसान: किसी खाने के 🎤 को छूकर सिर्फ़ वही संख्या बोलें — जैसे “चौंतीस”। पूरा वाक्य बोलना ज़रूरी नहीं।',
