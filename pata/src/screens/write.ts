@@ -12,7 +12,10 @@ import { Share } from '@capacitor/share';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Capacitor } from '@capacitor/core';
 import { getSettings, kvGet, kvSet } from '../db';
-import { t } from '../i18n';
+import { getLang, t } from '../i18n';
+import { langDef } from '../packs';
+import { canListen, listen } from '../speech';
+import { isReading, readAloud, stopReading } from '../voice';
 import { blobToDataUrl, makePdf } from '../pdf';
 import { getSession } from '../session';
 import { el, esc, toast } from '../ui';
@@ -42,6 +45,11 @@ export async function renderWrite(root: HTMLElement): Promise<void> {
         <label>
           <textarea name="body" rows="14" class="write-area">${esc(saved.body)}</textarea>
         </label>
+        <div class="row">
+          <button type="button" class="btn big" id="dictateBtn">🎤 ${esc(t('dictate'))}</button>
+          <button type="button" class="btn big" id="readBtn">🔊 ${esc(t('readBack'))}</button>
+        </div>
+        <p class="tiny" id="writeState" hidden></p>
         <button type="button" class="btn primary big" id="pdfBtn">📄 ${esc(t('makePdf'))}</button>
       </form>
     </div>`);
@@ -61,6 +69,64 @@ export async function renderWrite(root: HTMLElement): Promise<void> {
   };
   titleEl.addEventListener('input', autosave);
   bodyEl.addEventListener('input', autosave);
+
+  const lang = getLang();
+  const speechLocale = langDef(lang).speech;
+  const state = screen.querySelector<HTMLElement>('#writeState')!;
+
+  // Dictating an essay. A child who can say far more than they can spell — or
+  // a teacher writing a letter one-handed at the end of a day — should not be
+  // stuck at the keyboard. It APPENDS rather than replaces, so a long piece is
+  // built a few sentences at a time and nothing already written is ever lost.
+  const dictateBtn = screen.querySelector<HTMLButtonElement>('#dictateBtn')!;
+  dictateBtn.addEventListener('click', async () => {
+    if (!canListen()) {
+      state.hidden = false;
+      state.textContent = t('voiceUnavailable');
+      bodyEl.focus();
+      return;
+    }
+    dictateBtn.classList.add('listening');
+    dictateBtn.innerHTML = `● ${esc(t('listening'))}`;
+    try {
+      const heard = (await listen(speechLocale, 15000)).trim();
+      if (heard) {
+        const sep = bodyEl.value && !/\s$/.test(bodyEl.value) ? ' ' : '';
+        bodyEl.value = bodyEl.value + sep + heard;
+        autosave();
+        bodyEl.scrollTop = bodyEl.scrollHeight;
+        state.hidden = false;
+        state.textContent = `${t('reportHeard')} “${heard}”`;
+      }
+    } catch {
+      state.hidden = false;
+      state.textContent = t('voiceUnavailable');
+      bodyEl.focus();
+    } finally {
+      dictateBtn.classList.remove('listening');
+      dictateBtn.innerHTML = `🎤 ${esc(t('dictate'))}`;
+    }
+  });
+
+  // Hearing your own writing read back is how you catch the sentence that does
+  // not work — and for a child it is the whole point of writing it.
+  const readBtn = screen.querySelector<HTMLButtonElement>('#readBtn')!;
+  readBtn.addEventListener('click', async () => {
+    if (isReading()) {
+      await stopReading();
+      readBtn.innerHTML = `🔊 ${esc(t('readBack'))}`;
+      return;
+    }
+    const text = [titleEl.value.trim(), bodyEl.value.trim()].filter(Boolean).join('. ');
+    if (!text) {
+      toast(t('writeSomething'));
+      bodyEl.focus();
+      return;
+    }
+    readBtn.innerHTML = `⏹ ${esc(t('stop'))}`;
+    await readAloud(text, lang, speechLocale);
+    readBtn.innerHTML = `🔊 ${esc(t('readBack'))}`;
+  });
 
   screen.querySelector('#pdfBtn')!.addEventListener('click', async () => {
     const title = titleEl.value.trim();

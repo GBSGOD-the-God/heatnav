@@ -12,6 +12,7 @@ import { getLang, t } from '../i18n';
 import { langDef } from '../packs';
 import { findNumbers, normaliseDigits, parseSingleNumber } from '../numbers';
 import { canListen, listenAll } from '../speech';
+import { isReading, readAloud, stopReading } from '../voice';
 import type { DailyReport } from '../types';
 import { el, esc, go, toast } from '../ui';
 
@@ -117,7 +118,10 @@ export async function renderReport(root: HTMLElement): Promise<void> {
         </label>
         <label>${esc(t('reportNotes'))}<textarea name="notes" rows="2"></textarea></label>
         <button type="submit" class="btn primary big">${esc(t('reportSubmit'))}</button>
-        <button type="button" class="btn big" id="shareBtn">📤 ${esc(t('reportShare'))}</button>
+        <div class="row">
+          <button type="button" class="btn big" id="shareBtn">📤 ${esc(t('reportShare'))}</button>
+          <button type="button" class="btn big" id="readBtn">🔊 ${esc(t('readBack'))}</button>
+        </div>
         <p class="tiny center">${esc(t('reportNeverAuto'))} · ${esc(t('reportShareHint'))}</p>
       </form>
       <details class="advanced" id="freeReport">
@@ -233,6 +237,22 @@ export async function renderReport(root: HTMLElement): Promise<void> {
       '— PATA',
     ].filter(Boolean).join('\n');
   };
+
+  // Hear the whole thing before submitting it. She has typed or dictated a
+  // page of numbers and is about to send it to the head teacher; reading it
+  // back is how you catch "thirty two" that was heard as "thirty two hundred"
+  // without having to re-read a form in poor light at the end of the day.
+  const readBtn = screen.querySelector<HTMLButtonElement>('#readBtn')!;
+  readBtn.addEventListener('click', async () => {
+    if (isReading()) {
+      await stopReading();
+      readBtn.innerHTML = `🔊 ${esc(t('readBack'))}`;
+      return;
+    }
+    readBtn.innerHTML = `⏹ ${esc(t('stop'))}`;
+    await readAloud(reportText(), lang, speechLocale);
+    readBtn.innerHTML = `🔊 ${esc(t('readBack'))}`;
+  });
 
   screen.querySelector('#shareBtn')!.addEventListener('click', async () => {
     const text = reportText();

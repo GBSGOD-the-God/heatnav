@@ -12,7 +12,8 @@ import { readPage } from '../ocr';
 import { LANGUAGES, langDef, matchConcept, s, type L } from '../packs';
 import { getSettings, saveSettings } from '../db';
 import { SAMPLE_PAGES, type SamplePage } from '../pages';
-import { canListen, isSpeaking, listen, speak, stopSpeak } from '../speech';
+import { canListen, listen } from '../speech';
+import { isReading, readAloud, stopReading } from '../voice';
 import { summarise } from '../summarise';
 import type { Lang } from '../types';
 import { el, esc, toast } from '../ui';
@@ -137,11 +138,11 @@ function pageView(root: HTMLElement, page: ResolvedPage): void {
     const sumText = result.sentences.join(' ');
     const sumListen = holder.querySelector<HTMLButtonElement>('#sumListen')!;
     sumListen.addEventListener('click', () => {
-      if (isSpeaking()) {
-        stopSpeak();
+      if (isReading()) {
+        stopReading();
         sumListen.textContent = `▶ ${s('listen', lang)}`;
       } else {
-        speak(sumText, speechLang());
+        void readAloud(sumText, lang, speechLang());
         sumListen.textContent = `⏹ ${s('stop', lang)}`;
       }
     });
@@ -153,11 +154,11 @@ function pageView(root: HTMLElement, page: ResolvedPage): void {
   // useful thing — that's what a struggling reader actually needs.
   const spoken = page.explanation || page.pageLines.join('. ');
   listenBtn?.addEventListener('click', () => {
-    if (isSpeaking()) {
-      stopSpeak();
+    if (isReading()) {
+      stopReading();
       listenBtn.textContent = `▶ ${s('listen', lang)}`;
     } else {
-      speak(spoken, speechLang());
+      void readAloud(spoken, lang, speechLang());
       listenBtn.textContent = `⏹ ${s('stop', lang)}`;
     }
   });
@@ -166,11 +167,11 @@ function pageView(root: HTMLElement, page: ResolvedPage): void {
   if (!page.explanation && page.pageLines.length) {
     const readBtn = el(`<button class="btn primary big">🔊 ${esc(s('readAloudOffer', lang))}</button>`);
     readBtn.addEventListener('click', () => {
-      if (isSpeaking()) {
-        stopSpeak();
+      if (isReading()) {
+        stopReading();
         readBtn.innerHTML = `🔊 ${esc(s('readAloudOffer', lang))}`;
       } else {
-        speak(spoken, speechLang());
+        void readAloud(spoken, lang, speechLang());
         readBtn.innerHTML = `⏹ ${esc(s('stop', lang))}`;
       }
     });

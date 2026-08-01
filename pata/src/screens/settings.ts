@@ -6,7 +6,7 @@
 // The Advanced section holds an AI *server address*, not a key — the key lives
 // on that server (see server/). It is collapsed by default and framed as
 // something a district might already have, never as something missing.
-import { aiHealth, getProxyUrl, hasBuiltInUrl, setProxyUrl } from '../ai';
+import { aiHealth, getProxyUrl, hasBuiltInUrl, serverVoiceOn, setProxyUrl } from '../ai';
 import { t } from '../i18n';
 import { el, esc, toast } from '../ui';
 
@@ -24,6 +24,7 @@ export async function renderSettings(root: HTMLElement): Promise<void> {
       </div>
 
       <h3>${esc(t('setVoiceTitle'))}</h3>
+      <p class="tiny" id="voiceStatus">…</p>
       <p class="sub">${esc(t('setVoiceHelp'))}</p>
 
       <details class="advanced" ${url && !hasBuiltInUrl() ? 'open' : ''}>
@@ -45,6 +46,16 @@ export async function renderSettings(root: HTMLElement): Promise<void> {
     </div>`);
   root.appendChild(screen);
 
+  // Natural voices are a separate, optional key on the same server. Say which
+  // of the two you are getting, because they sound completely different.
+  const voiceStatus = screen.querySelector('#voiceStatus')!;
+  const paintVoice = async () => {
+    const on = await serverVoiceOn();
+    voiceStatus.textContent = t(on ? 'setVoiceNatural' : 'setVoiceDevice');
+    voiceStatus.className = 'tiny ' + (on ? 'ai-on' : 'ai-off');
+  };
+  void paintVoice();
+
   const status = screen.querySelector('#aiStatus')!;
   const paintStatus = async () => {
     status.textContent = t('setChecking');
@@ -64,5 +75,5 @@ export async function renderSettings(root: HTMLElement): Promise<void> {
     toast(t('aiSaved'));
     paintStatus();
   });
-  screen.querySelector('#testBtn')!.addEventListener('click', paintStatus);
+  screen.querySelector('#testBtn')!.addEventListener('click', () => { paintStatus(); void paintVoice(); });
 }

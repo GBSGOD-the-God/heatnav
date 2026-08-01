@@ -13,6 +13,19 @@ workers_dev = true
 #
 # Model IDs are plain config, so you can change them without touching code.
 # Verify current names at https://docs.mistral.ai/getting-started/models/
+#
+# Natural voices are OPTIONAL and use a SECOND, separate key. Without it the
+# app reads aloud with the phone's own voice, which works but sounds flat over
+# anything essay-length:
+#     npx wrangler secret put SARVAM_API_KEY
+# Sarvam's Bulbul is trained on Indian languages specifically. It covers
+# eleven of the app's twelve; Assamese has no Bulbul voice and keeps using
+# the phone.
 [vars]
 TEXT_MODEL = "mistral-small-latest"
 VISION_MODEL = "pixtral-12b-2409"
+
+# The voice itself. Change these to pick a different speaker — no code edit,
+# no redeploy of the app. Names: https://docs.sarvam.ai/api/getting-started/models/bulbul.md
+VOICE_MODEL = "bulbul:v3"
+VOICE_SPEAKER = "shubh"

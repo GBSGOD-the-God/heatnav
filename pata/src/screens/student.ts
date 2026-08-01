@@ -18,7 +18,7 @@ import { getSettings } from '../db';
 import { conceptFor, langDef } from '../packs';
 import { getLang, isFallback, t, translate, translateList } from '../i18n';
 import { currentStudent, getSession } from '../session';
-import { isSpeaking, speak, stopSpeak } from '../speech';
+import { isReading, readAloud, stopReading } from '../voice';
 import type { CheckRecord, Lang } from '../types';
 import { el, esc } from '../ui';
 
@@ -130,11 +130,11 @@ function gapCard(check: CheckRecord, L: Lang, speechLang: string): HTMLElement {
       </div>`;
     const listen = advice.querySelector<HTMLButtonElement>('[data-listen]')!;
     listen.addEventListener('click', () => {
-      if (isSpeaking()) {
-        stopSpeak();
+      if (isReading()) {
+        stopReading();
         listen.textContent = '▶';
       } else {
-        speak(text, speechLang);
+        void readAloud(text, L, speechLang);
         listen.textContent = '⏹';
       }
     });

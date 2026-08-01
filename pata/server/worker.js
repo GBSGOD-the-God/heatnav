@@ -231,6 +231,80 @@ async function handleJudge(env, body) {
 
 // ---------------------------------------------------------------- entry
 
+
+// ----------------------------------------------------------------- /speak
+//
+// Android's built-in engine is usually the compact voice that ships with the
+// phone: flat, clipped, and genuinely hard to follow over an essay-length
+// passage. Sarvam's Bulbul is trained on Indian languages specifically and is
+// a different class of thing to listen to.
+//
+// This is OPTIONAL and separately keyed. If SARVAM_API_KEY is unset the route
+// answers 501 and the app reads aloud with the phone's own voice exactly as
+// before — nothing breaks, it just sounds worse.
+//
+// Docs: https://docs.sarvam.ai/api/api-guides-tutorials/text-to-speech/rest-api.md
+
+/** Our twelve → Sarvam's eleven. Assamese has no Bulbul voice, so it is
+ *  absent here and the app keeps using the device voice for it. */
+const VOICE_LANGS = {
+  hi: 'hi-IN', en: 'en-IN', bn: 'bn-IN', ta: 'ta-IN', te: 'te-IN', kn: 'kn-IN',
+  ml: 'ml-IN', mr: 'mr-IN', gu: 'gu-IN', pa: 'pa-IN', or: 'or-IN',
+};
+
+/** The published docs disagree about Odia — the model page says od-IN, the
+ *  REST page says or-IN. Try ours, then the other, rather than guessing. */
+const LANG_ALIASES = { 'or-IN': 'od-IN' };
+
+const VOICE_MAX_CHARS = 2000; // Sarvam's REST limit is 2500; leave headroom.
+
+async function handleSpeak(env, body) {
+  const key = env.SARVAM_API_KEY;
+  if (!key) return json({ error: 'novoice' }, 501);
+
+  const text = String(body?.text ?? '').trim().slice(0, VOICE_MAX_CHARS);
+  if (!text) return json({ error: 'badrequest' }, 400);
+
+  const code = VOICE_LANGS[String(body?.lang ?? 'hi')];
+  if (!code) return json({ error: 'nolang' }, 501);
+
+  // Model and speaker are plain config (wrangler.toml [vars]) so a district
+  // can change the voice without touching code. These defaults are the pair
+  // shown in Sarvam's own REST example.
+  const speaker = env.VOICE_SPEAKER || 'shubh';
+  const model = env.VOICE_MODEL || 'bulbul:v3';
+
+  const ask = (language_code) =>
+    fetch('https://api.sarvam.ai/text-to-speech', {
+      method: 'POST',
+      headers: { 'api-subscription-key': key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text,
+        language_code,
+        speaker,
+        model,
+        pace: 0.9, // a shade slow: this is being read to a child following along
+        speech_sample_rate: 22050, // enough for speech, a third the bytes of 48k
+      }),
+    });
+
+  let res = await ask(code);
+  if (!res.ok && LANG_ALIASES[code]) res = await ask(LANG_ALIASES[code]);
+
+  if (!res.ok) {
+    const detail = (await res.text()).slice(0, 200);
+    return json({ error: 'upstream', status: res.status, detail }, 502);
+  }
+
+  const data = await res.json();
+  const audio = data?.audios?.[0];
+  if (!audio) return json({ error: 'noaudio' }, 502);
+
+  // Base64 WAV, handed straight to the app. Caching is the app's job: it keys
+  // on the text so a child replaying their own essay costs nothing.
+  return json({ audio, format: 'wav' });
+}
+
 export default {
   async fetch(request, env, ctx) {
     if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });
@@ -249,6 +323,9 @@ export default {
         // missing, misspelled, or saved as an empty string.
         worker: 'pata-ai',
         keyLength: typeof key === 'string' ? key.length : 0,
+        // A second, entirely optional key. Without it the app reads aloud with
+        // the phone's own voice, which still works — it just sounds worse.
+        voice: Boolean(env.SARVAM_API_KEY),
         bindings: Object.keys(env).sort(),
       });
     }
@@ -261,6 +338,9 @@ export default {
       return json({
         service: 'PATA AI proxy',
         status: keySet ? 'ready' : 'no API key set',
+        voice: env.SARVAM_API_KEY
+          ? 'natural voices on'
+          : 'optional: npx wrangler secret put SARVAM_API_KEY for natural Indian-language voices',
         next: keySet
           ? 'Working. Paste this URL into the app: Settings -> Advanced.'
           : 'Run: npx wrangler secret put MISTRAL_API_KEY, then npx wrangler deploy',
@@ -270,7 +350,8 @@ export default {
     }
 
     if (request.method !== 'POST') return json({ error: 'method' }, 405);
-    if (!env.MISTRAL_API_KEY) return json({ error: 'unconfigured' }, 503);
+    // /speak uses a different key, so it must not be gated on this one.
+    if (path !== '/speak' && !env.MISTRAL_API_KEY) return json({ error: 'unconfigured' }, 503);
 
     const declared = Number(request.headers.get('content-length') ?? 0);
     if (declared > LIMITS.maxBodyBytes) return json({ error: 'toobig' }, 413);
@@ -295,6 +376,7 @@ export default {
       case '/page':   return handlePage(env, body);
       case '/advise': return handleAdvise(env, body);
       case '/judge':  return handleJudge(env, body);
+      case '/speak':  return handleSpeak(env, body);
       default:        return json({ error: 'notfound' }, 404);
     }
   },

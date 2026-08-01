@@ -160,8 +160,8 @@ async function bestNativeVoice(lang: string): Promise<number | undefined> {
   }
 }
 
-export async function speak(text: string, lang: string): Promise<void> {
-  await stopSpeak();
+export async function speakDevice(text: string, lang: string): Promise<void> {
+  await stopDevice();
   speaking = true;
   const parts = sentences(text);
 
@@ -205,7 +205,7 @@ export async function speak(text: string, lang: string): Promise<void> {
   });
 }
 
-export async function stopSpeak(): Promise<void> {
+export async function stopDevice(): Promise<void> {
   speaking = false;
   if (isNative) {
     try { await TextToSpeech.stop(); } catch { /* not speaking */ }
@@ -214,7 +214,7 @@ export async function stopSpeak(): Promise<void> {
   if ('speechSynthesis' in window) speechSynthesis.cancel();
 }
 
-export function isSpeaking(): boolean {
+export function isDeviceSpeaking(): boolean {
   if (isNative) return speaking;
   return ('speechSynthesis' in window && speechSynthesis.speaking) || speaking;
 }

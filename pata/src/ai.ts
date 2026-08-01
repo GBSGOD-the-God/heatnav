@@ -56,6 +56,20 @@ export async function aiHealth(): Promise<'ok' | 'nokey' | 'unreachable' | 'unse
   }
 }
 
+/** Does the server have a natural voice configured? A separate, optional key
+ *  from the AI one, so it has to be asked about separately. */
+export async function serverVoiceOn(): Promise<boolean> {
+  const base = await getProxyUrl();
+  if (!base) return false;
+  try {
+    const res = await fetch(base + '/health', { method: 'GET' });
+    if (!res.ok) return false;
+    return Boolean((await res.json())?.voice);
+  } catch {
+    return false;
+  }
+}
+
 class AiError extends Error {}
 
 async function call<T>(path: string, payload: unknown, timeoutMs = 60_000): Promise<T> {

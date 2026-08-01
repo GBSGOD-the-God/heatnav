@@ -15,7 +15,7 @@ import { renderLanguage, renderLogin } from './screens/onboard';
 import { renderStudent } from './screens/student';
 import { renderWrite } from './screens/write';
 import { getSession, signOut } from './session';
-import { stopSpeak } from './speech';
+import { stopReading } from './voice';
 
 type Renderer = (root: HTMLElement, params: URLSearchParams) => Promise<void> | void;
 
@@ -75,7 +75,7 @@ let renderTicket = 0;
 
 async function render(): Promise<void> {
   const ticket = ++renderTicket;
-  stopSpeak();
+  stopReading();
   const { screen, params } = parseHash();
 
   const app = document.getElementById('app')!;
