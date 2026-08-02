@@ -1,6 +1,6 @@
 // Result: counts, the misconception in plain words (never the letter), the
 // children named, and three one-tap actions — each choice is logged (§9).
-import { allChecks, allStudents, getCheck, logAction, uid } from '../db';
+import { allChecks, allStudents, getCheck, logAction, saveAssignment, uid } from '../db';
 import { bi, t } from '../i18n';
 import type { CheckRecord, Student } from '../types';
 import { el, esc, toast } from '../ui';
@@ -87,9 +87,22 @@ export async function renderResult(root: HTMLElement, params: URLSearchParams): 
             ).join('')}
           </div>`;
       } else if (action === 'home') {
+        // This is the moment the child's practice comes into existence. She
+        // taps once; the questions are generated from this topic and the
+        // misconception behind the wrong answer, for exactly the children who
+        // missed it and no one else.
+        await saveAssignment({
+          id: uid(),
+          checkId: check!.id,
+          studentIds: notStudents.map((s) => s.id),
+          topicKey: check!.topicKey,
+          topicLabel: check!.topicLabel,
+          misconception: check!.misconception,
+          createdAt: Date.now(),
+        });
         consequence.innerHTML = `
           <h3>${esc(t('actHome'))}</h3>
-          <p class="note">${esc(t('homeQueued'))}</p>
+          <p class="note">${esc(t('homeSent'))}</p>
           <div class="chips readonly">
             ${notStudents.map((s) => `<span class="chip name">${esc(bi(s.name))}</span>`).join('')}
           </div>`;

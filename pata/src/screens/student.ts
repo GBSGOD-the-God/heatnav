@@ -20,7 +20,7 @@ import { getLang, isFallback, t, translate, translateList } from '../i18n';
 import { currentStudent, getSession } from '../session';
 import { isReading, readAloud, stopReading } from '../voice';
 import type { CheckRecord, Lang } from '../types';
-import { el, esc } from '../ui';
+import { el, esc, go } from '../ui';
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -127,7 +127,22 @@ function gapCard(check: CheckRecord, L: Lang, speechLang: string): HTMLElement {
         </div>
         <p class="explain-text">${esc(text)}</p>
         ${offline ? `<p class="tiny">${esc(t('adviceOffline'))}</p>` : ''}
+        <button class="btn primary big" data-quiz>${esc(t('understoodQuiz'))}</button>
       </div>`;
+
+    // Reading an explanation is not the same as having understood it, and a
+    // child cannot tell the difference from the inside. Five questions can.
+    advice.querySelector('[data-quiz]')!.addEventListener('click', () => {
+      // Pass the check's id, not its label. A URL can only carry the two
+      // languages we would think to put in it, and the result would then be
+      // filed under an English topic name on a Malayalam screen.
+      const q = new URLSearchParams({
+        topic: check.topicKey,
+        check: check.id,
+        seed: String(Date.now()),
+      });
+      go('/quiz?' + q.toString());
+    });
     const listen = advice.querySelector<HTMLButtonElement>('[data-listen]')!;
     listen.addEventListener('click', () => {
       if (isReading()) {

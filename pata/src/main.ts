@@ -1,5 +1,5 @@
 import './style.css';
-import { getSettings } from './db';
+import { getSettings, unseenResultCount } from './db';
 import { setLang, t } from './i18n';
 import { ensureSeeded } from './seed';
 import { el, esc, go } from './ui';
@@ -14,6 +14,8 @@ import { renderSettings } from './screens/settings';
 import { renderLanguage, renderLogin } from './screens/onboard';
 import { renderStudent } from './screens/student';
 import { renderWrite } from './screens/write';
+import { renderQuiz } from './screens/quiz';
+import { renderInbox } from './screens/inbox';
 import { getSession, signOut } from './session';
 import { stopReading } from './voice';
 
@@ -32,22 +34,26 @@ const ROUTES: Record<string, Renderer> = {
   login: renderLogin,
   my: renderStudent,
   write: renderWrite,
+  quiz: renderQuiz,
+  inbox: renderInbox,
 };
 
 /** Screens each role is allowed to open. A child must never reach the class's
  *  marks, and the teacher's screens are no use to them (§5). */
-const TEACHER_SCREENS = ['prep', 'check', 'result', 'insight', 'report', 'home', 'roster', 'settings', 'write'];
+const TEACHER_SCREENS = ['prep', 'check', 'result', 'insight', 'report', 'home', 'roster', 'settings', 'write', 'inbox'];
 // No Settings for the child: it configures a district's AI server, which is
 // not theirs to set. The address is stored per device, so the teacher setting
 // it once covers the child on the same phone.
-const STUDENT_SCREENS = ['my', 'home', 'write'];
+const STUDENT_SCREENS = ['my', 'home', 'write', 'quiz'];
 
 const TEACHER_NAV: Array<[string, string, string]> = [
   ['prep', 'navPrep', '✎'],
   ['check', 'navCheck', '✓'],
+  // Where the children's practice comes back. It sits in the middle because
+  // it is the half of the loop that used to be missing, not an afterthought.
+  ['inbox', 'navInbox', '↩'],
   ['insight', 'navInsight', '☰'],
   ['report', 'navReport', '✉'],
-  ['home', 'navHome', '⌂'],
 ];
 
 /** The child's app is three things, not eight. */
@@ -123,12 +129,16 @@ async function render(): Promise<void> {
       ${isTeacher ? `<span class="sample-badge">${esc(t('sampleBadge'))}</span>` : ''}
       <div class="topbar-actions">
         <button class="icon-btn" id="langBtn" aria-label="${esc(t('pickLanguage'))}">🌐</button>
+        ${isTeacher ? `<button class="icon-btn" id="pageBtn" aria-label="${esc(t('homeTitle'))}">📖</button>` : ''}
         ${isTeacher ? `<button class="icon-btn" id="rosterBtn" aria-label="${esc(t('rosterTitle'))}">☷</button>` : ''}
         ${isTeacher ? `<button class="icon-btn" id="settingsBtn" aria-label="${esc(t('settingsTitle'))}">⚙</button>` : ''}
         <button class="icon-btn" id="outBtn" aria-label="${esc(t('signOut'))}">⏻</button>
       </div>
     </header>`);
   header.querySelector('#brandBtn')!.addEventListener('click', () => go('/' + home));
+  // The page reader lost its tab to the inbox. It is still one tap away —
+  // dropping a working feature to make room for a new one is not a trade.
+  header.querySelector('#pageBtn')?.addEventListener('click', () => go('/home'));
   header.querySelector('#rosterBtn')?.addEventListener('click', () => go('/roster'));
   header.querySelector('#settingsBtn')?.addEventListener('click', () => go('/settings'));
   header.querySelector('#outBtn')!.addEventListener('click', async () => {
@@ -146,13 +156,18 @@ async function render(): Promise<void> {
   header.querySelector('#langBtn')!.addEventListener('click', () => go('/language'));
 
   const navScreen =
-    target === 'result' ? 'check' : ['roster', 'settings'].includes(target) ? '' : target;
+    target === 'result' ? 'check' : ['roster', 'settings', 'quiz'].includes(target) ? '' : target;
+  // How many results the teacher has not looked at. A number on a tab, not a
+  // notification: nothing interrupts her, and it disappears when she reads it.
+  const unseen = isTeacher ? await unseenResultCount() : 0;
   const NAV = isTeacher ? TEACHER_NAV : STUDENT_NAV;
   const nav = el(
     `<nav class="bottombar">${NAV.map(
       ([key, label, icon]) =>
         `<button class="nav-item ${key === navScreen ? 'active' : ''}" data-nav="${key}">
-          <span class="nav-icon">${icon}</span><span>${esc(t(label))}</span>
+          <span class="nav-icon">${icon}${
+            key === 'inbox' && unseen ? `<span class="badge">${unseen > 9 ? '9+' : unseen}</span>` : ''
+          }</span><span>${esc(t(label))}</span>
         </button>`
     ).join('')}</nav>`
   );
@@ -173,6 +188,8 @@ async function boot(): Promise<void> {
   // The Home screen can change the language from inside the page; the header
   // and the navigation bar are outside it and have to be redrawn too.
   window.addEventListener('pata:lang', () => void render());
+  // Reading the inbox clears the badge, which lives outside that screen.
+  window.addEventListener('pata:results', () => void render());
   await render();
 }
 

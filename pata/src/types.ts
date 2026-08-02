@@ -86,6 +86,56 @@ export interface CheckRecord {
   sample?: boolean;
 }
 
+/**
+ * Practice sent home after a check (§9, the "send home" action).
+ *
+ * The teacher does not write these questions. She marks who did not get it and
+ * taps once; the quiz is generated from the topic and the NAMED misconception
+ * behind the wrong answer, so what the child practises is the specific thing
+ * they got wrong rather than the subject in general.
+ */
+export interface QuizAssignment {
+  id: string;
+  checkId: string;
+  /** Only the children who missed it. A child never gets someone else's. */
+  studentIds: string[];
+  topicKey: string;
+  topicLabel: Bi;
+  misconception: Bi | null;
+  createdAt: number;
+}
+
+/** One answered question, kept so the teacher sees WHAT went wrong, not just
+ *  how much (§4 — misconceptions, never a bare score). */
+export interface QuizAnswer {
+  level: number;
+  correct: boolean;
+  /** The misconception the chosen wrong answer encodes, when it encodes one. */
+  misconception: Bi | null;
+}
+
+/**
+ * What comes back. Per-child and only ever per-child (C4): there is no class
+ * average anywhere in this record and none is computed from it.
+ */
+export interface QuizResult {
+  id: string;
+  assignmentId: string | null;
+  studentId: string;
+  studentName: Bi;
+  topicKey: string;
+  topicLabel: Bi;
+  correct: number;
+  total: number;
+  /** The hardest level they answered correctly. More use to a teacher than the
+   *  score: 3 of 5 at level 4 is a different child from 3 of 5 at level 1. */
+  peakLevel: number;
+  answers: QuizAnswer[];
+  /** Has the teacher opened it yet — drives the badge, nothing else. */
+  seen: boolean;
+  ts: number;
+}
+
 /** §9 — log which of the three actions she actually picks. */
 export interface ActionLog {
   id: string;

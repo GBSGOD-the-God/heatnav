@@ -2,23 +2,26 @@
 // backend, no cloud accounts. Offline-first: every classroom function works
 // with the network permanently off.
 import { openDB, type IDBPDatabase } from 'idb';
-import type { ActionLog, CheckRecord, DailyReport, Lesson, Settings, Student } from './types';
+import type {
+  ActionLog, CheckRecord, DailyReport, Lesson, QuizAssignment, QuizResult, Settings, Student,
+} from './types';
 
 const DB_NAME = 'pata';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbPromise: Promise<IDBPDatabase> | null = null;
 
 function db(): Promise<IDBPDatabase> {
   if (!dbPromise) {
     dbPromise = openDB(DB_NAME, DB_VERSION, {
+      // Runs for a fresh install AND for an upgrade from v1, so every store is
+      // created only if it is missing. A teacher who already has a term of
+      // checks on her phone must not lose them to a version bump.
       upgrade(d) {
-        d.createObjectStore('students', { keyPath: 'id' });
-        d.createObjectStore('lessons', { keyPath: 'id' });
-        d.createObjectStore('checks', { keyPath: 'id' });
-        d.createObjectStore('actions', { keyPath: 'id' });
-        d.createObjectStore('reports', { keyPath: 'id' });
-        d.createObjectStore('kv');
+        for (const name of ['students', 'lessons', 'checks', 'actions', 'reports', 'assignments', 'results']) {
+          if (!d.objectStoreNames.contains(name)) d.createObjectStore(name, { keyPath: 'id' });
+        }
+        if (!d.objectStoreNames.contains('kv')) d.createObjectStore('kv');
       },
     });
   }
@@ -113,4 +116,44 @@ export async function saveReport(r: DailyReport): Promise<void> {
 export async function allReports(): Promise<DailyReport[]> {
   const rows: DailyReport[] = await (await db()).getAll('reports');
   return rows.sort((a, b) => b.ts - a.ts);
+}
+
+// --- practice sent home ---
+export async function saveAssignment(a: QuizAssignment): Promise<void> {
+  await (await db()).put('assignments', a);
+}
+export async function allAssignments(): Promise<QuizAssignment[]> {
+  const rows: QuizAssignment[] = await (await db()).getAll('assignments');
+  return rows.sort((x, y) => y.createdAt - x.createdAt);
+}
+/** Only this child's. The store holds the whole class; the child's screen must
+ *  never be handed anyone else's row to filter client-side. */
+export async function assignmentsFor(studentId: string): Promise<QuizAssignment[]> {
+  return (await allAssignments()).filter((a) => a.studentIds.includes(studentId));
+}
+
+export async function saveResult(r: QuizResult): Promise<void> {
+  await (await db()).put('results', r);
+}
+export async function allResults(): Promise<QuizResult[]> {
+  const rows: QuizResult[] = await (await db()).getAll('results');
+  return rows.sort((x, y) => y.ts - x.ts);
+}
+export async function resultsFor(studentId: string): Promise<QuizResult[]> {
+  return (await allResults()).filter((r) => r.studentId === studentId);
+}
+/** Returns how many were actually marked, so a caller can avoid announcing a
+ *  change that did not happen — announcing unconditionally re-rendered the
+ *  screen that had just called this, which called it again, forever. */
+export async function markResultsSeen(): Promise<number> {
+  const d = await db();
+  const tx = d.transaction('results', 'readwrite');
+  const rows: QuizResult[] = await tx.store.getAll();
+  const fresh = rows.filter((r) => !r.seen);
+  await Promise.all(fresh.map((r) => tx.store.put({ ...r, seen: true })));
+  await tx.done;
+  return fresh.length;
+}
+export async function unseenResultCount(): Promise<number> {
+  return (await allResults()).filter((r) => !r.seen).length;
 }
