@@ -101,6 +101,9 @@ export interface QuizAssignment {
   studentIds: string[];
   topicKey: string;
   topicLabel: Bi;
+  /** The question they missed, so the child's card can show it on a device
+   *  that never saw the check itself. */
+  questionText: Bi | null;
   misconception: Bi | null;
   createdAt: number;
 }

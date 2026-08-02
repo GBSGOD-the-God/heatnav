@@ -132,6 +132,10 @@ export async function assignmentsFor(studentId: string): Promise<QuizAssignment[
   return (await allAssignments()).filter((a) => a.studentIds.includes(studentId));
 }
 
+export async function getAssignment(id: string): Promise<QuizAssignment | undefined> {
+  return (await db()).get('assignments', id);
+}
+
 export async function saveResult(r: QuizResult): Promise<void> {
   await (await db()).put('results', r);
 }

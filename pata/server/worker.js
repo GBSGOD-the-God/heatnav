@@ -362,6 +362,48 @@ async function handleSyncPush(env, body) {
   return json({ ok: true, stored: merged.length });
 }
 
+/**
+ * The other direction: the practice the teacher assigned, going out to the
+ * children's phones. Without this the sync is one-way and the child's device
+ * has nothing to practise — it holds no record of a check that happened on
+ * her phone.
+ */
+async function handleAssignPush(env, body) {
+  if (!env.PATA_SYNC) return json({ error: 'nosync' }, 501);
+  const room = String(body?.room ?? '').slice(0, 64);
+  const items = Array.isArray(body?.items) ? body.items.slice(0, SYNC_MAX_ITEMS) : null;
+  if (!room || !items) return json({ error: 'badrequest' }, 400);
+
+  const key = `assign:${room}`;
+  const existing = (await env.PATA_SYNC.get(key, 'json')) ?? [];
+  const byId = new Map(existing.map((r) => [r.id, r]));
+  for (const item of items) {
+    if (!item?.id) continue;
+    byId.set(item.id, {
+      id: String(item.id).slice(0, 64),
+      checkId: String(item.checkId ?? '').slice(0, 64),
+      studentIds: Array.isArray(item.studentIds) ? item.studentIds.slice(0, 200).map(String) : [],
+      topicKey: String(item.topicKey ?? '').slice(0, 64),
+      topicLabel: item.topicLabel ?? null,
+      questionText: item.questionText ?? null,
+      misconception: item.misconception ?? null,
+      createdAt: Number(item.createdAt) || Date.now(),
+    });
+  }
+  const merged = [...byId.values()].sort((a, b) => a.createdAt - b.createdAt).slice(-SYNC_LIMIT);
+  await env.PATA_SYNC.put(key, JSON.stringify(merged), { expirationTtl: 60 * 60 * 24 * 180 });
+  return json({ ok: true, stored: merged.length });
+}
+
+async function handleAssignPull(env, body) {
+  if (!env.PATA_SYNC) return json({ error: 'nosync' }, 501);
+  const room = String(body?.room ?? '').slice(0, 64);
+  if (!room) return json({ error: 'badrequest' }, 400);
+  const since = Number(body?.since) || 0;
+  const all = (await env.PATA_SYNC.get(`assign:${room}`, 'json')) ?? [];
+  return json({ items: all.filter((r) => r.createdAt > since) });
+}
+
 async function handleSyncPull(env, body) {
   if (!env.PATA_SYNC) return json({ error: 'nosync' }, 501);
   const room = String(body?.room ?? '').slice(0, 64);
@@ -420,7 +462,7 @@ export default {
     if (request.method !== 'POST') return json({ error: 'method' }, 405);
     // /speak uses a different key, so it must not be gated on this one.
     // These use different bindings, so the AI key must not gate them.
-    const keyless = ['/speak', '/sync/push', '/sync/pull'];
+    const keyless = ['/speak', '/sync/push', '/sync/pull', '/sync/assign', '/sync/assigned'];
     if (!keyless.includes(path) && !env.MISTRAL_API_KEY) return json({ error: 'unconfigured' }, 503);
 
     const declared = Number(request.headers.get('content-length') ?? 0);
@@ -449,6 +491,8 @@ export default {
       case '/speak':  return handleSpeak(env, body);
       case '/sync/push': return handleSyncPush(env, body);
       case '/sync/pull': return handleSyncPull(env, body);
+      case '/sync/assign': return handleAssignPush(env, body);
+      case '/sync/assigned': return handleAssignPull(env, body);
       default:        return json({ error: 'notfound' }, 404);
     }
   },

@@ -3,13 +3,18 @@
 import { allChecks, allStudents, getCheck, logAction, saveAssignment, uid } from '../db';
 import { bi, t } from '../i18n';
 import type { CheckRecord, Student } from '../types';
+import { pushAssignments } from '../sync';
 import { el, esc, toast } from '../ui';
 
 function pairUp(understood: Student[], not: Student[]): Array<[Student, Student]> {
   // Strongest helper with the child furthest behind; helpers repeat if needed.
+  // If NOBODY got it there is no one to pair with, and the modulo below would
+  // hand back undefined and take the screen down with it. That is not a rare
+  // case — it is exactly what a hard question looks like.
+  if (!understood.length || !not.length) return [];
   const helpers = [...understood].sort((a, b) => b.level - a.level);
   const learners = [...not].sort((a, b) => a.level - b.level);
-  return learners.map((learner, i) => [helpers[i % Math.max(helpers.length, 1)], learner]);
+  return learners.map((learner, i) => [helpers[i % helpers.length], learner]);
 }
 
 export async function renderResult(root: HTMLElement, params: URLSearchParams): Promise<void> {
@@ -78,7 +83,9 @@ export async function renderResult(root: HTMLElement, params: URLSearchParams): 
 
       if (action === 'pair') {
         const pairs = pairUp(gotStudents, notStudents);
-        consequence.innerHTML = `
+        consequence.innerHTML = !pairs.length
+          ? `<h3>${esc(t('pairTitle'))}</h3><p class="note">${esc(t('pairNobody'))}</p>`
+          : `
           <h3>${esc(t('pairTitle'))}</h3>
           <div class="paper pairs">
             ${pairs.map(
@@ -91,15 +98,20 @@ export async function renderResult(root: HTMLElement, params: URLSearchParams): 
         // taps once; the questions are generated from this topic and the
         // misconception behind the wrong answer, for exactly the children who
         // missed it and no one else.
-        await saveAssignment({
+        const assignment = {
           id: uid(),
           checkId: check!.id,
           studentIds: notStudents.map((s) => s.id),
           topicKey: check!.topicKey,
           topicLabel: check!.topicLabel,
+          questionText: check!.questionText,
           misconception: check!.misconception,
           createdAt: Date.now(),
-        });
+        };
+        await saveAssignment(assignment);
+        // Also send it out, for the children who are on their own phones.
+        // Best-effort and unawaited: her screen never waits on a network.
+        void pushAssignments();
         consequence.innerHTML = `
           <h3>${esc(t('actHome'))}</h3>
           <p class="note">${esc(t('homeSent'))}</p>

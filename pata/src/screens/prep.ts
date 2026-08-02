@@ -1,5 +1,5 @@
 import { aiAvailable, aiErrorKey, aiGenerateLesson } from '../ai';
-import { BANK, findBankTopic } from '../bank';
+import { BANK, bankTopicByKey, findBankTopic, type BankTopic } from '../bank';
 import { langDef } from '../packs';
 import { allActions, allChecks, allLessons, saveLesson } from '../db';
 import { generateLesson } from '../generator';
@@ -148,12 +148,12 @@ export async function renderPrep(root: HTMLElement): Promise<void> {
 
   const genBtn = screen.querySelector<HTMLButtonElement>('#genBtn')!;
 
-  const makeLesson = async (topic: string) => {
+  const makeLesson = async (topic: string, known?: BankTopic | null) => {
     if (!topic.trim()) return;
     let lesson = null;
     // Real AI when there's a key + internet (except bank topics picked offline-style,
     // which are instant either way); on-device bank/draft otherwise — never blocked.
-    if ((await aiAvailable()) && !findBankTopic(topic)) {
+    if ((await aiAvailable()) && !(known ?? findBankTopic(topic))) {
       genBtn.disabled = true;
       genBtn.textContent = t('aiGenerating');
       try {
@@ -166,7 +166,7 @@ export async function renderPrep(root: HTMLElement): Promise<void> {
       }
     }
     if (!lesson) {
-      lesson = generateLesson(topic);
+      lesson = generateLesson(topic, known);
       lesson.questions.forEach(shuffleOptions);
     }
     await saveLesson(lesson);
@@ -197,11 +197,16 @@ export async function renderPrep(root: HTMLElement): Promise<void> {
     }
   });
 
+  // Pass the KEY, not the label. The chip shows the topic in the teacher's
+  // language, and looking that translated string back up would fail for ten of
+  // the twelve — handing her a draft skeleton for a topic the app has full
+  // curated material for.
   screen.querySelectorAll<HTMLElement>('.chip[data-key]').forEach((chip) =>
     chip.addEventListener('click', () => {
-      const bankTopic = BANK.find((b) => b.key === chip.dataset.key)!;
+      const bankTopic = bankTopicByKey(chip.dataset.key!);
+      if (!bankTopic) return;
       input.value = bi(bankTopic.label);
-      makeLesson(bi(bankTopic.label));
+      makeLesson(bi(bankTopic.label), bankTopic);
     })
   );
 

@@ -125,7 +125,13 @@ export async function renderCheck(root: HTMLElement, params: URLSearchParams): P
     updateTally();
   });
 
-  screen.querySelector('#confirmBtn')!.addEventListener('click', () => {
+  const confirmBtn = screen.querySelector<HTMLButtonElement>('#confirmBtn')!;
+  confirmBtn.addEventListener('click', () => {
+    // One check per confirm. Without this a second tap stacks another overlay
+    // over the first, and answering both writes the same check twice — which
+    // then shows up as two rows everywhere downstream.
+    if (confirmBtn.disabled) return;
+    confirmBtn.disabled = true;
     clearInterval(timerId);
     const markedIds = [...marked];
     const otherIds = students.filter((s) => !marked.has(s.id)).map((s) => s.id);
@@ -146,7 +152,10 @@ export async function renderCheck(root: HTMLElement, params: URLSearchParams): P
           <button class="link-btn" id="skipWrong">${esc(t('checkSkip'))}</button>
         </div>
       </div>`);
+    let saving = false;
     const finish = async (wrong: OptionKey | null) => {
+      if (saving) return;
+      saving = true;
       const durationSec = Math.round((Date.now() - startedAt) / 1000);
       const check: CheckRecord = {
         id: uid(),

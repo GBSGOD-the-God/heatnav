@@ -2,7 +2,7 @@
 // Bank topics get the curated set; anything else gets an honest, clearly
 // labelled draft skeleton the teacher edits — every question still carries a
 // full distractor→misconception map (§11).
-import { findBankTopic } from './bank';
+import { findBankTopic, type BankTopic } from './bank';
 import { uid } from './db';
 import type { Bi, Lesson, Question } from './types';
 
@@ -55,8 +55,13 @@ function draftQuestions(topic: string): Question[] {
   ];
 }
 
-export function generateLesson(topicInput: string): Lesson {
-  const bank = findBankTopic(topicInput);
+/**
+ * @param known  A bank topic the caller already identified — the quick-pick
+ *   chips pass this so nothing depends on matching a translated label back to
+ *   a key. Text typed or spoken still goes through findBankTopic.
+ */
+export function generateLesson(topicInput: string, known?: BankTopic | null): Lesson {
+  const bank = known ?? findBankTopic(topicInput);
   if (bank) {
     return {
       id: uid(),

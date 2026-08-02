@@ -13,13 +13,14 @@
 // it was drafted in — so it is read through translate(), which falls back
 // honestly, and the screen says when it had to.
 import { aiAvailable, aiExplainConcept } from '../ai';
-import { allChecks, allLessons } from '../db';
+import { allChecks, allLessons, assignmentsFor } from '../db';
 import { getSettings } from '../db';
 import { conceptFor, langDef } from '../packs';
 import { getLang, isFallback, t, translate, translateList } from '../i18n';
 import { currentStudent, getSession } from '../session';
+import { pullAssignments, pushPending } from '../sync';
 import { isReading, readAloud, stopReading } from '../voice';
-import type { CheckRecord, Lang } from '../types';
+import type { Bi, Lang } from '../types';
 import { el, esc, go } from '../ui';
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -37,6 +38,14 @@ export async function renderStudent(root: HTMLElement): Promise<void> {
     return;
   }
 
+  // Anything the teacher sent from her own phone. Best-effort and quick to
+  // fail: on a shared device there is nothing to fetch, and offline this
+  // returns immediately. Also flush any result that could not be handed over
+  // last time — a child's score should not sit on their phone forever because
+  // the network happened to be down the moment they finished.
+  void pullAssignments(me.school, me.id).then((n) => { if (n) void renderStudent(root); });
+  void pushPending(me.school);
+
   const checks = await allChecks();
   const lessons = await allLessons();
 
@@ -45,7 +54,37 @@ export async function renderStudent(root: HTMLElement): Promise<void> {
     (c) => c.ts > Date.now() - 3 * DAY &&
       (c.notUnderstoodIds.includes(me.id) || c.understoodIds.includes(me.id))
   );
-  const missed = mine.filter((c) => c.notUnderstoodIds.includes(me.id));
+
+  /**
+   * What this child has to work on, from either direction.
+   *
+   * On a shared phone it comes from the check record itself. On their own
+   * phone that record does not exist — the check happened on the teacher's
+   * device — so it comes from the assignment she sent. Same card either way,
+   * de-duplicated by the check it came from.
+   */
+  const gaps: Gap[] = mine
+    .filter((c) => c.notUnderstoodIds.includes(me.id))
+    .map((c) => ({
+      key: c.id,
+      topicKey: c.topicKey,
+      topicLabel: c.topicLabel,
+      questionText: c.questionText,
+      misconception: c.misconception,
+    }));
+  const seen = new Set(gaps.map((g) => g.key));
+  for (const a of await assignmentsFor(me.id)) {
+    if (a.createdAt < Date.now() - 3 * DAY || seen.has(a.checkId)) continue;
+    seen.add(a.checkId);
+    gaps.push({
+      key: a.checkId || a.id,
+      topicKey: a.topicKey,
+      topicLabel: a.topicLabel,
+      questionText: a.questionText,
+      misconception: a.misconception,
+    });
+  }
+
   const todaysLesson = lessons[0] ?? null;
 
   // Say it plainly when the teacher's own text is not in the child's language.
@@ -74,19 +113,28 @@ export async function renderStudent(root: HTMLElement): Promise<void> {
     </div>`);
   root.appendChild(screen);
 
-  const gaps = screen.querySelector('#gaps')!;
+  const holder = screen.querySelector('#gaps')!;
 
-  if (!missed.length) {
-    gaps.innerHTML = `<p class="verdict good">✓ ${esc(t('noGaps'))}</p>`;
+  if (!gaps.length) {
+    holder.innerHTML = `<p class="verdict good">✓ ${esc(t('noGaps'))}</p>`;
     return;
   }
 
-  for (const check of missed) {
-    gaps.appendChild(gapCard(check, L, speechLang));
+  for (const gap of gaps) {
+    holder.appendChild(gapCard(gap, L, speechLang));
   }
 }
 
-function gapCard(check: CheckRecord, L: Lang, speechLang: string): HTMLElement {
+/** One thing to work on, whichever device the record reached us from. */
+interface Gap {
+  key: string;
+  topicKey: string;
+  topicLabel: Bi;
+  questionText: Bi | null;
+  misconception: Bi | null;
+}
+
+function gapCard(check: Gap, L: Lang, speechLang: string): HTMLElement {
   const card = el(`
     <div class="gap-card">
       <p class="gap-topic">${esc(translate(check.topicLabel))}</p>
@@ -138,7 +186,7 @@ function gapCard(check: CheckRecord, L: Lang, speechLang: string): HTMLElement {
       // filed under an English topic name on a Malayalam screen.
       const q = new URLSearchParams({
         topic: check.topicKey,
-        check: check.id,
+        check: check.key,
         seed: String(Date.now()),
       });
       go('/quiz?' + q.toString());
@@ -165,7 +213,7 @@ function gapCard(check: CheckRecord, L: Lang, speechLang: string): HTMLElement {
         try {
           text = await aiExplainConcept(
             check.topicLabel.en,
-            check.questionText.en,
+            check.questionText?.en ?? '',
             check.misconception?.en ?? '',
             langDef(L).english
           );

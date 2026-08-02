@@ -289,12 +289,28 @@ export const BANK: BankTopic[] = BANK_HI_EN.map((topic) => ({
   })),
 }));
 
+/**
+ * Match typed or spoken input to a bank topic.
+ *
+ * The label is checked in EVERY language, not just Hindi and English. A
+ * teacher working in Malayalam types or taps the Malayalam topic name, and
+ * matching only the two stored languages meant she fell through to the draft
+ * skeleton — placeholder questions reading "write the correct answer here" —
+ * for topics the app has full curated material for.
+ */
 export function findBankTopic(input: string): BankTopic | null {
   const q = input.toLowerCase().trim();
   if (!q) return null;
   for (const topic of BANK) {
     if (topic.match.some((m) => q.includes(m.toLowerCase()))) return topic;
-    if (q.includes(topic.label.hi.toLowerCase()) || q.includes(topic.label.en.toLowerCase())) return topic;
+    for (const label of Object.values(topic.label)) {
+      if (label && q.includes(String(label).toLowerCase())) return topic;
+    }
   }
   return null;
+}
+
+/** By key, for the quick-pick chips — no string matching to get wrong. */
+export function bankTopicByKey(key: string): BankTopic | null {
+  return BANK.find((b) => b.key === key) ?? null;
 }

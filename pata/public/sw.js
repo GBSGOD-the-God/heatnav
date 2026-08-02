@@ -5,7 +5,7 @@
        the first time it is used, then available offline. In the Android APK
        these files ship on disk, so OCR is offline from the moment it installs.
 */
-const CACHE = 'pata-v2';
+const CACHE = 'pata-v3';
 
 const SHELL = [
   './',
@@ -19,7 +19,11 @@ const SHELL = [
   './assets/web.js',
   './assets/web2.js',
   './assets/web3.js',
+  './assets/web4.js',
 ];
+// scripts/check-shell.mjs fails the build if the bundler emits a chunk that is
+// not listed above — this list silently drifting is how the first offline OCR
+// run ends up fetching a file that was never cached.
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
@@ -42,6 +46,28 @@ self.addEventListener('activate', (e) => {
   );
 });
 
+/**
+ * The app's own code is served NETWORK-FIRST; everything else cache-first.
+ *
+ * This matters more than it looks. Our filenames are not content-hashed, so a
+ * cache-first app.js is served from the cache forever — install a new APK and
+ * the WebView happily keeps running the previous build's JavaScript, because
+ * app data survives the update and the cached response never expires. Every
+ * fix would appear not to have shipped.
+ *
+ * Network-first costs nothing where it matters: inside the APK the "network"
+ * is the local asset server, and offline it falls straight through to the
+ * cache, so a cold offline load still works.
+ */
+function isAppCode(url, req) {
+  return (
+    req.mode === 'navigate' ||
+    url.pathname.endsWith('.html') ||
+    url.pathname.endsWith('.css') ||
+    /\/assets\/[^/]+\.js$/.test(url.pathname)
+  );
+}
+
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
@@ -49,25 +75,31 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return; // never touch the API
 
+  const store = async (res) => {
+    if (res && res.ok) {
+      const copy = res.clone();
+      caches.open(CACHE).then((c) => c.put(req, copy));
+    }
+    return res;
+  };
+
+  if (isAppCode(url, req)) {
+    e.respondWith(
+      fetch(req)
+        .then(store)
+        .catch(async () =>
+          (await caches.match(req, { ignoreSearch: true })) ??
+          (req.mode === 'navigate' ? await caches.match('./index.html') : null) ??
+          Response.error()
+        )
+    );
+    return;
+  }
+
+  // Language models, the WASM core, images: big, immutable, cache-first.
   e.respondWith(
     caches.match(req, { ignoreSearch: true }).then(
-      (hit) =>
-        hit ||
-        fetch(req)
-          .then((res) => {
-            if (res.ok) {
-              const copy = res.clone();
-              caches.open(CACHE).then((c) => c.put(req, copy));
-            }
-            return res;
-          })
-          .catch(async () => {
-            // Offline and uncached: fall back to the shell for navigations.
-            if (req.mode === 'navigate') {
-              return (await caches.match('./index.html')) ?? Response.error();
-            }
-            return Response.error();
-          })
+      (hit) => hit || fetch(req).then(store).catch(() => Response.error())
     )
   );
 });

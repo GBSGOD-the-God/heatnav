@@ -17,8 +17,9 @@
 //   3. It is optional. With no server configured, or no KV attached to it,
 //      every call here returns quietly and the app is exactly as it was.
 import { getProxyUrl } from './ai';
-import { allResults, kvGet, kvSet, saveResult } from './db';
-import type { QuizResult } from './types';
+import { allAssignments, allResults, kvGet, kvSet, saveAssignment, saveResult } from './db';
+import { DEMO_SCHOOL } from './session';
+import type { QuizAssignment, QuizResult } from './types';
 
 /**
  * Which class's results these are. Derived from the school name both devices
@@ -102,7 +103,12 @@ export async function pushPending(school: string): Promise<number> {
     items: mine.map(forWire),
   });
   if (!ok) return 0; // stays queued for next time
-  await kvSet(PENDING, []);
+
+  // Remove only what was actually sent. Emptying the queue outright would
+  // silently drop a result finished while this request was in flight.
+  const sent = new Set(mine.map((r) => r.id));
+  const still = ((await kvGet<string[]>(PENDING)) ?? []).filter((id) => !sent.has(id));
+  await kvSet(PENDING, still);
   return mine.length;
 }
 
@@ -110,8 +116,18 @@ export async function pushPending(school: string): Promise<number> {
  * Collect what the children have sent. Returns how many were new, so the
  * caller can redraw only when there is something to redraw.
  */
+/**
+ * A week of overlap on the watermark.
+ *
+ * Two phones do not agree about the time — a cheap handset with no SIM can be
+ * days out. A result stamped earlier than a watermark we set from someone
+ * else's clock would be skipped forever. Re-reading a week costs nothing
+ * because everything is de-duplicated by id anyway.
+ */
+const CLOCK_SLACK = 7 * 24 * 60 * 60 * 1000;
+
 export async function pullResults(school: string): Promise<number> {
-  const since = (await kvGet<number>('sync:since')) ?? 0;
+  const since = Math.max(0, ((await kvGet<number>('sync:since')) ?? 0) - CLOCK_SLACK);
   const data = await post<{ items: Array<ReturnType<typeof forWire>> }>('/sync/pull', {
     room: roomFor(school),
     since,
@@ -147,4 +163,51 @@ export async function syncAvailable(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+// --- the other direction: practice going out to the children ---------------
+
+const ASSIGN_SINCE = 'sync:assignSince';
+
+/** Everything this phone has assigned. Cheap, and it repairs a push that
+ *  failed earlier without needing its own queue. */
+export async function pushAssignments(school = DEMO_SCHOOL): Promise<number> {
+  const mine = (await allAssignments()).slice(0, 50);
+  if (!mine.length) return 0;
+  const ok = await post<{ ok: boolean }>('/sync/assign', {
+    room: roomFor(school),
+    items: mine,
+  });
+  return ok ? mine.length : 0;
+}
+
+/**
+ * What this child has been asked to practise.
+ *
+ * Without this the loop is same-device only: the child's phone holds no record
+ * of a check that happened on the teacher's, so their screen has nothing on it
+ * but the sample data every install seeds.
+ */
+export async function pullAssignments(school: string, studentId: string): Promise<number> {
+  const since = Math.max(0, ((await kvGet<number>(ASSIGN_SINCE)) ?? 0) - CLOCK_SLACK);
+  const data = await post<{ items: QuizAssignment[] }>('/sync/assigned', {
+    room: roomFor(school),
+    since,
+  });
+  if (!data?.items?.length) return 0;
+
+  const existing = new Set((await allAssignments()).map((a) => a.id));
+  let added = 0;
+  let newest = since;
+  for (const item of data.items) {
+    newest = Math.max(newest, item.createdAt);
+    // Only what was assigned to THIS child. A phone never stores, and never
+    // has the chance to show, another child's practice.
+    if (!item.studentIds?.includes(studentId)) continue;
+    if (existing.has(item.id)) continue;
+    await saveAssignment(item);
+    added++;
+  }
+  await kvSet(ASSIGN_SINCE, newest);
+  return added;
 }
