@@ -305,6 +305,72 @@ async function handleSpeak(env, body) {
   return json({ audio, format: 'wav' });
 }
 
+
+// ------------------------------------------------------------ /sync
+//
+// Carrying quiz results from a child's phone to their teacher's.
+//
+// On one shared phone this is unnecessary — the results are already in the
+// same database. On two phones there is nowhere for them to meet, and this is
+// the smallest thing that fixes that: a JSON array per class in KV, pushed to
+// and polled from. No accounts, no sessions, no realtime.
+//
+// What crosses the network is deliberately thin. NO CHILD'S NAME EVER LEAVES
+// THE DEVICE (C8): the payload carries the opaque roster id, and the teacher's
+// phone — which already holds the register — turns that back into a name
+// locally. What travels is a roster id, a topic, a score and a misconception.
+//
+// The room key is derived from the school name both devices already know, so
+// there is nothing for anyone to set up or type. It is a routing key, NOT
+// authentication: someone who knows the school name could read scores against
+// anonymous ids. For a pilot that is the right trade against making teachers
+// manage credentials; a district rollout should put a real shared secret in
+// front of it, and the room key is the place to add one.
+
+const SYNC_LIMIT = 300;      // per class, oldest dropped
+const SYNC_MAX_ITEMS = 50;   // per push
+
+async function handleSyncPush(env, body) {
+  if (!env.PATA_SYNC) return json({ error: 'nosync' }, 501);
+  const room = String(body?.room ?? '').slice(0, 64);
+  const items = Array.isArray(body?.items) ? body.items.slice(0, SYNC_MAX_ITEMS) : null;
+  if (!room || !items) return json({ error: 'badrequest' }, 400);
+
+  const key = `room:${room}`;
+  const existing = (await env.PATA_SYNC.get(key, 'json')) ?? [];
+  const byId = new Map(existing.map((r) => [r.id, r]));
+  for (const item of items) {
+    if (!item?.id) continue;
+    // Strip anything we did not ask for rather than storing what we are sent.
+    byId.set(item.id, {
+      id: String(item.id).slice(0, 64),
+      studentId: String(item.studentId ?? '').slice(0, 64),
+      topicKey: String(item.topicKey ?? '').slice(0, 64),
+      topicLabel: item.topicLabel ?? null,
+      correct: Number(item.correct) || 0,
+      total: Number(item.total) || 0,
+      peakLevel: Number(item.peakLevel) || 0,
+      answers: Array.isArray(item.answers) ? item.answers.slice(0, 10) : [],
+      ts: Number(item.ts) || Date.now(),
+    });
+  }
+  const merged = [...byId.values()].sort((a, b) => a.ts - b.ts).slice(-SYNC_LIMIT);
+  await env.PATA_SYNC.put(key, JSON.stringify(merged), {
+    // A term is long enough. Nothing here needs keeping beyond that.
+    expirationTtl: 60 * 60 * 24 * 180,
+  });
+  return json({ ok: true, stored: merged.length });
+}
+
+async function handleSyncPull(env, body) {
+  if (!env.PATA_SYNC) return json({ error: 'nosync' }, 501);
+  const room = String(body?.room ?? '').slice(0, 64);
+  if (!room) return json({ error: 'badrequest' }, 400);
+  const since = Number(body?.since) || 0;
+  const all = (await env.PATA_SYNC.get(`room:${room}`, 'json')) ?? [];
+  return json({ items: all.filter((r) => r.ts > since) });
+}
+
 export default {
   async fetch(request, env, ctx) {
     if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });
@@ -326,6 +392,8 @@ export default {
         // A second, entirely optional key. Without it the app reads aloud with
         // the phone's own voice, which still works — it just sounds worse.
         voice: Boolean(env.SARVAM_API_KEY),
+        // Carries results between a child's phone and their teacher's.
+        sync: Boolean(env.PATA_SYNC),
         bindings: Object.keys(env).sort(),
       });
     }
@@ -351,7 +419,9 @@ export default {
 
     if (request.method !== 'POST') return json({ error: 'method' }, 405);
     // /speak uses a different key, so it must not be gated on this one.
-    if (path !== '/speak' && !env.MISTRAL_API_KEY) return json({ error: 'unconfigured' }, 503);
+    // These use different bindings, so the AI key must not gate them.
+    const keyless = ['/speak', '/sync/push', '/sync/pull'];
+    if (!keyless.includes(path) && !env.MISTRAL_API_KEY) return json({ error: 'unconfigured' }, 503);
 
     const declared = Number(request.headers.get('content-length') ?? 0);
     if (declared > LIMITS.maxBodyBytes) return json({ error: 'toobig' }, 413);
@@ -377,6 +447,8 @@ export default {
       case '/advise': return handleAdvise(env, body);
       case '/judge':  return handleJudge(env, body);
       case '/speak':  return handleSpeak(env, body);
+      case '/sync/push': return handleSyncPush(env, body);
+      case '/sync/pull': return handleSyncPull(env, body);
       default:        return json({ error: 'notfound' }, 404);
     }
   },

@@ -8,7 +8,9 @@
 // misconception the child kept picking, because that is what she can teach
 // tomorrow. "3 of 5" tells her nothing she can act on; "still taking the
 // smaller digit from the larger" tells her exactly what to put on the board.
-import { allResults, markResultsSeen } from '../db';
+import { allResults, allStudents, markResultsSeen } from '../db';
+import { getSession } from '../session';
+import { pullResults } from '../sync';
 import { t, translate } from '../i18n';
 import { MAX_LEVEL } from '../quiz';
 import type { Bi, QuizResult } from '../types';
@@ -27,7 +29,20 @@ function dominant(r: QuizResult): Bi | null {
 
 export async function renderInbox(root: HTMLElement): Promise<void> {
   root.innerHTML = '';
+  const session = await getSession();
+
+  // Collect anything the children sent from their own phones. Best-effort: on
+  // a shared device there is nothing to collect and this returns immediately.
+  if (session?.school) await pullResults(session.school);
+
   const results = await allResults();
+  // A result that arrived over the network carries a roster id, never a name.
+  // The register on this phone is what turns it back into a child.
+  const roster = await allStudents();
+  const nameOf = (r: (typeof results)[number]) =>
+    r.studentName?.en || r.studentName?.hi
+      ? r.studentName
+      : roster.find((s) => s.id === r.studentId)?.name ?? { hi: r.studentId, en: r.studentId };
 
   const screen = el(`
     <div>
@@ -48,7 +63,7 @@ export async function renderInbox(root: HTMLElement): Promise<void> {
     const strong = r.correct >= 4;
     return `<div class="list-item static ${r.seen ? '' : 'fresh'}">
       <div class="row spread">
-        <strong>${esc(translate(r.studentName))}</strong>
+        <strong>${esc(translate(nameOf(r)))}</strong>
         <span class="quiz-score-chip ${strong ? 'good' : ''}">${r.correct}/${r.total}</span>
       </div>
       <span class="meta">${esc(translate(r.topicLabel))}</span>

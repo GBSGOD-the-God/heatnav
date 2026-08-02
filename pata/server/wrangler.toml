@@ -29,3 +29,17 @@ VISION_MODEL = "pixtral-12b-2409"
 # no redeploy of the app. Names: https://docs.sarvam.ai/api/getting-started/models/bulbul.md
 VOICE_MODEL = "bulbul:v3"
 VOICE_SPEAKER = "shubh"
+
+# Carrying quiz results between a child's phone and their teacher's. Only
+# needed when they are DIFFERENT phones — on one shared device the results are
+# already in the same database and this can be left off.
+#
+#   npx wrangler kv namespace create PATA_SYNC
+#
+# That prints an id. Paste it below, uncomment both lines, and deploy.
+# No child's name is ever sent: the payload carries the roster id, and the
+# teacher's phone turns that back into a name from the register it already has.
+#
+# [[kv_namespaces]]
+# binding = "PATA_SYNC"
+# id = "paste-the-id-wrangler-printed-here"

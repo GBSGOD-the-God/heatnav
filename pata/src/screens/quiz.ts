@@ -19,6 +19,7 @@ import {
   type QuizOption, type QuizQuestion,
 } from '../quiz';
 import { currentStudent, getSession } from '../session';
+import { pushPending, queueForSync } from '../sync';
 import type { Bi, QuizAnswer, QuizResult } from '../types';
 import { el, esc, go } from '../ui';
 import { isReading, readAloud, stopReading } from '../voice';
@@ -94,6 +95,11 @@ export async function renderQuiz(root: HTMLElement, params: URLSearchParams): Pr
       ts: Date.now(),
     };
     await saveResult(result);
+    // Local first, network second. If the teacher is on this same phone the
+    // result is already where it needs to be; if she is not, this hands it
+    // over — and if that fails it stays queued for the next time.
+    await queueForSync(result);
+    void pushPending(me.school);
 
     // What went wrong, not just how much. If the same misconception came up
     // more than once, that is the thing to say — to the child too, not only
