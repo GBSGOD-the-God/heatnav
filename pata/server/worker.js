@@ -413,6 +413,90 @@ async function handleSyncPull(env, body) {
   return json({ items: all.filter((r) => r.ts > since) });
 }
 
+
+// ------------------------------------------------------------- /quiz
+//
+// Practice questions for ANY topic.
+//
+// The app generates its own for the topics it ships with, and those are better
+// than anything a model produces: the wrong answers are computed by actually
+// making the misconception, so they are exactly wrong in the way a child is
+// wrong. But that only covers five topics. A teacher who drafts a lesson on
+// the water cycle has a class of children with nothing to practise.
+//
+// This fills that gap. Five questions, one per difficulty level, in the
+// child's language, every wrong option carrying the misconception it encodes —
+// the same shape the on-device generator produces, so the quiz screen cannot
+// tell them apart.
+
+const quizSystem = (language, levels) => `You write practice questions for Indian government school children aged 9-13.
+
+Return JSON only:
+{"questions":[{"level":1,"stem":"...","options":[{"text":"...","correct":true},{"text":"...","correct":false,"misconception":"..."}]}]}
+
+Rules, all of them mandatory:
+- Exactly ${levels} questions, one at each difficulty level 1 to ${levels}. Level 1 is the easiest a child who has understood nothing could still attempt; level ${levels} stretches a child who has understood it well.
+- Exactly 4 options per question. Exactly ONE has "correct": true.
+- EVERY wrong option carries "misconception": a short phrase naming the specific error a child makes to arrive at that answer. Not "wrong answer" — the actual reasoning, e.g. "added the denominators as well" or "reversed cause and effect".
+- Wrong options must be answers a real child would genuinely reach. Never absurd, never obviously wrong at a glance.
+- Write the stem and all options in ${language}. Numerals stay as digits.
+- Keep every option under 60 characters. These are read on a small phone.
+- No preamble, no explanation, JSON only.`;
+
+async function handleQuiz(env, body) {
+  if (!env.MISTRAL_API_KEY) return json({ error: 'unconfigured' }, 503);
+
+  const topic = String(body?.topic ?? '').slice(0, 200);
+  const misconception = String(body?.misconception ?? '').slice(0, 300);
+  const language = String(body?.language ?? 'Hindi').slice(0, 40);
+  const levels = Math.min(Math.max(Number(body?.levels) || 5, 3), 5);
+  if (!topic) return json({ error: 'notopic' }, 400);
+
+  const out = await askMistral(env, {
+    model: env.TEXT_MODEL || DEFAULT_TEXT_MODEL,
+    system: quizSystem(language, levels),
+    user:
+      `Topic: ${topic}` +
+      (misconception ? `\nThis child already got it wrong by: ${misconception}. At least one wrong option in each question should be reachable by that same mistake.` : ''),
+    maxTokens: 2000,
+  });
+  if (out.error) return json({ error: out.error }, 502);
+
+  // Validate rather than trust. A question with two correct answers, or none,
+  // is worse than no question at all — the child is marked wrong for being
+  // right, and the misconception recorded against them is a fiction.
+  const clean = [];
+  for (const q of Array.isArray(out.data?.questions) ? out.data.questions : []) {
+    const stem = String(q?.stem ?? '').trim();
+    const opts = Array.isArray(q?.options) ? q.options : [];
+    if (!stem || opts.length < 3) continue;
+
+    const seen = new Set();
+    const options = [];
+    for (const o of opts.slice(0, 4)) {
+      const text = String(o?.text ?? '').trim().slice(0, 120);
+      if (!text || seen.has(text)) continue;
+      seen.add(text);
+      options.push({
+        text,
+        correct: Boolean(o?.correct),
+        misconception: o?.correct ? null : String(o?.misconception ?? '').trim().slice(0, 200) || null,
+      });
+    }
+    if (options.filter((o) => o.correct).length !== 1) continue;
+    if (options.length < 3) continue;
+
+    clean.push({
+      level: Math.min(Math.max(Number(q?.level) || 1, 1), levels),
+      stem: stem.slice(0, 300),
+      options,
+    });
+  }
+
+  if (!clean.length) return json({ error: 'badoutput' }, 502);
+  return json({ questions: clean });
+}
+
 export default {
   async fetch(request, env, ctx) {
     if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });
@@ -487,6 +571,7 @@ export default {
       case '/lesson': return handleLesson(env, body);
       case '/page':   return handlePage(env, body);
       case '/advise': return handleAdvise(env, body);
+      case '/quiz':   return handleQuiz(env, body);
       case '/judge':  return handleJudge(env, body);
       case '/speak':  return handleSpeak(env, body);
       case '/sync/push': return handleSyncPush(env, body);

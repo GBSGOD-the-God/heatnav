@@ -1,7 +1,7 @@
 // All state lives in IndexedDB via `idb` — no localStorage (spec §8), no
 // backend, no cloud accounts. Offline-first: every classroom function works
 // with the network permanently off.
-import { openDB, type IDBPDatabase } from 'idb';
+import { deleteDB, openDB, type IDBPDatabase } from 'idb';
 import type {
   ActionLog, CheckRecord, DailyReport, Lesson, QuizAssignment, QuizResult, Settings, Student,
 } from './types';
@@ -26,6 +26,47 @@ function db(): Promise<IDBPDatabase> {
     });
   }
   return dbPromise;
+}
+
+/**
+ * Bump this to make the next launch a cold start.
+ *
+ * Installing an APK over the top keeps the app's data, which is right for a
+ * teacher and wrong for a demo — you want the language picker, an empty
+ * inbox and a class that has never been checked. Changing this token wipes
+ * the database and the cached shell exactly once, then records the new token
+ * so it never happens again on that build.
+ *
+ * It is not a routine upgrade step. Real data is real; only change this when
+ * a fresh start is what you actually want.
+ */
+const BUILD_TOKEN = 'cold-start-1';
+
+export async function ensureFreshBuild(): Promise<boolean> {
+  let seen: string | undefined;
+  try {
+    seen = await kvGet<string>('buildToken');
+  } catch {
+    seen = undefined; // unreadable database — wiping is the right answer anyway
+  }
+  if (seen === BUILD_TOKEN) return false;
+
+  try {
+    (await db()).close();
+  } catch { /* nothing open */ }
+  dbPromise = null;
+  await deleteDB(DB_NAME);
+
+  // The service worker's copy of the shell too, or a recording opens on the
+  // previous build's screens.
+  try {
+    if (typeof caches !== 'undefined') {
+      for (const key of await caches.keys()) await caches.delete(key);
+    }
+  } catch { /* no cache storage here */ }
+
+  await kvSet('buildToken', BUILD_TOKEN);
+  return true;
 }
 
 export function uid(): string {

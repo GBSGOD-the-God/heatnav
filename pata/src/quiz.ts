@@ -25,7 +25,7 @@ import { BANK } from './bank';
 import { CONTENT } from './content-i18n';
 import { translate } from './i18n';
 import { CONCEPTS } from './packs';
-import type { Bi, Lang } from './types';
+import type { Bi, Lang, Lesson } from './types';
 
 export const QUIZ_LENGTH = 5;
 export const MAX_LEVEL = 5;
@@ -338,3 +338,66 @@ export function nextLevel(level: number, correct: boolean): number {
 }
 
 export const START_LEVEL = 2;
+
+/** Topics the device can generate for by itself. Anything else needs either
+ *  the lesson's own questions or the server. */
+export function hasOfflineQuestions(topicKey: string, lang: Lang): boolean {
+  return makeQuestion(topicKey, START_LEVEL, lang, makeRng(1)) !== null;
+}
+
+/**
+ * The lesson's own three diagnostic questions, as practice.
+ *
+ * This is the offline path for a topic the app does not ship with: whatever
+ * the teacher drafted — or the AI drafted for her — is already stored on the
+ * device, already carries a named misconception on every distractor, and is
+ * already in the languages it was written in.
+ */
+export function questionsFromLesson(lesson: Lesson | undefined, lang: Lang): QuizQuestion[] {
+  if (!lesson?.questions?.length) return [];
+  const rnd = makeRng(lesson.createdAt || 1);
+  const keys = ['A', 'B', 'C', 'D'] as const;
+  const out: QuizQuestion[] = [];
+  lesson.questions.forEach((q, i) => {
+    const right = keys.find((k) => q.options[k].correct);
+    if (!right) return;
+    const built = assemble(
+      translate(q.text, lang),
+      translate(q.options[right].text, lang),
+      keys.filter((k) => k !== right).map((k) => [
+        translate(q.options[k].text, lang),
+        (q.options[k].mis ?? null) as Bi,
+      ] as [string, Bi]),
+      Math.min(MAX_LEVEL, i + 2)
+    );
+    if (built) out.push({ ...built, options: shuffle(built.options, rnd) });
+  });
+  return out;
+}
+
+/** Turn what the server sent into the same shape everything else uses. */
+export function fromAiQuestions(
+  raw: Array<{ level: number; stem: string; options: Array<{ text: string; correct: boolean; misconception: string | null }> }>,
+  lang: Lang
+): QuizQuestion[] {
+  const rnd = makeRng(raw.length + 7);
+  return raw
+    .map((q) => {
+      const right = q.options.find((o) => o.correct);
+      if (!right) return null;
+      const built = assemble(
+        q.stem,
+        right.text,
+        q.options.filter((o) => !o.correct).map((o) => [
+          o.text,
+          // The model writes the misconception in the child's language; store
+          // it under that language AND English so the teacher's phone, which
+          // may be set to something else, still has something to show.
+          { en: o.misconception ?? '', hi: o.misconception ?? '', [lang]: o.misconception ?? '' } as Bi,
+        ] as [string, Bi]),
+        q.level
+      );
+      return built ? { ...built, options: shuffle(built.options, rnd) } : null;
+    })
+    .filter((q): q is QuizQuestion => q !== null);
+}

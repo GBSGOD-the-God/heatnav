@@ -10,12 +10,14 @@
 // app encodes a NAMED misconception (§4), and generated ones are computed by
 // actually making that mistake — so the result tells the teacher which error
 // the child is making, not merely that they got three out of five.
-import { getCheck, getSettings, saveResult, uid } from '../db';
+import { getCheck, getLesson, getSettings, saveResult, uid } from '../db';
+import { aiAvailable, aiQuizQuestions } from '../ai';
 import { BANK } from '../bank';
 import { getLang, t, translate } from '../i18n';
 import { langDef } from '../packs';
 import {
-  makeQuestion, makeRng, nextLevel, QUIZ_LENGTH, START_LEVEL,
+  fromAiQuestions, hasOfflineQuestions, makeQuestion, makeRng, nextLevel,
+  questionsFromLesson, QUIZ_LENGTH, START_LEVEL,
   type QuizOption, type QuizQuestion,
 } from '../quiz';
 import { currentStudent, getSession } from '../session';
@@ -56,6 +58,23 @@ export async function renderQuiz(root: HTMLElement, params: URLSearchParams): Pr
   let level = START_LEVEL;
   let index = 0;
   let peak = 0;
+
+  /**
+   * Where the questions come from, best first.
+   *
+   *   1. The on-device generator, for the topics it knows. Its wrong answers
+   *      are computed by making the misconception, so they are wrong in
+   *      exactly the way a child is wrong — no model matches that, and it
+   *      costs nothing and works offline.
+   *   2. The AI, for everything else. A teacher can draft a lesson on any
+   *      topic at all, and her children should not be left with nothing to
+   *      practise because it was not one of the five we shipped.
+   *   3. The lesson's own diagnostic questions, which are already on the
+   *      device and already name a misconception per distractor. This is what
+   *      an arbitrary topic falls back to with no network.
+   */
+  const generated = hasOfflineQuestions(topicKey, lang);
+  let pool: QuizQuestion[] = [];
 
   const screen = el(`
     <div class="quiz">
@@ -136,10 +155,20 @@ export async function renderQuiz(root: HTMLElement, params: URLSearchParams): Pr
     stage.querySelector('#doneBtn')!.addEventListener('click', () => go('/my'));
   };
 
+  /** From the pool, the unused question closest to the difficulty we want. */
+  const fromPool = (): QuizQuestion | null => {
+    if (!pool.length) return null;
+    let best = 0;
+    for (let i = 1; i < pool.length; i++) {
+      if (Math.abs(pool[i].level - level) < Math.abs(pool[best].level - level)) best = i;
+    }
+    return pool.splice(best, 1)[0];
+  };
+
   const ask = () => {
     if (index >= QUIZ_LENGTH) return void finish();
 
-    const question = makeQuestion(topicKey, level, lang, rnd);
+    const question = generated ? makeQuestion(topicKey, level, lang, rnd) : fromPool();
     if (!question) return void finish(); // nothing we can ask honestly — stop
 
     paintDots();
@@ -155,6 +184,38 @@ export async function renderQuiz(root: HTMLElement, params: URLSearchParams): Pr
       index++;
     }, () => ask(), lang, speechLocale));
   };
+
+  // For a topic the device cannot generate, fill the pool before starting.
+  if (!generated) {
+    stage.innerHTML = `<p class="sub center">${esc(t('quizPreparing'))}</p>`;
+    if (await aiAvailable()) {
+      try {
+        pool = fromAiQuestions(
+          await aiQuizQuestions(
+            translate(topicLabel, 'en') || topicKey,
+            check?.misconception?.en ?? '',
+            langDef(lang).english,
+            5
+          ),
+          lang
+        );
+      } catch {
+        pool = []; // fall through to whatever is on the device
+      }
+    }
+    if (!pool.length && check?.lessonId) {
+      pool = questionsFromLesson(await getLesson(check.lessonId), lang);
+    }
+    if (!pool.length) {
+      stage.innerHTML = `
+        <div class="empty">
+          <p>${esc(t('quizNoQuestions'))}</p>
+          <button class="btn primary" id="backBtn">${esc(t('quizDone'))}</button>
+        </div>`;
+      stage.querySelector('#backBtn')!.addEventListener('click', () => go('/my'));
+      return;
+    }
+  }
 
   ask();
 }

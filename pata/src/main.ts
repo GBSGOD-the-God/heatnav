@@ -1,5 +1,5 @@
 import './style.css';
-import { getSettings, unseenResultCount } from './db';
+import { ensureFreshBuild, getSettings, unseenResultCount } from './db';
 import { setLang, t } from './i18n';
 import { ensureSeeded } from './seed';
 import { el, esc, go } from './ui';
@@ -181,6 +181,8 @@ async function render(): Promise<void> {
 }
 
 async function boot(): Promise<void> {
+  // Once per build token, and never again on that build.
+  await ensureFreshBuild();
   await ensureSeeded();
   const settings = await getSettings();
   setLang(settings.lang);

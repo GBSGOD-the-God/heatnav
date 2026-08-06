@@ -187,6 +187,32 @@ export async function aiExplainConcept(
   return r.advice;
 }
 
+export interface AiQuizOption { text: string; correct: boolean; misconception: string | null }
+export interface AiQuizQuestion { level: number; stem: string; options: AiQuizOption[] }
+
+/**
+ * Practice questions for a topic the app does not ship with.
+ *
+ * The on-device generator covers the bundled topics and is better than this —
+ * its wrong answers are computed by making the misconception, not written by a
+ * model. But it only knows five topics, and a teacher can draft a lesson on
+ * anything. One request returns one question per difficulty level, so the
+ * quiz can still adapt.
+ */
+export async function aiQuizQuestions(
+  topic: string,
+  misconception: string,
+  languageName: string,
+  levels = 5
+): Promise<AiQuizQuestion[]> {
+  const r = await call<{ questions: AiQuizQuestion[] }>(
+    '/quiz',
+    { topic, misconception, language: languageName, levels },
+    45_000
+  );
+  return Array.isArray(r.questions) ? r.questions : [];
+}
+
 /** Map a failure to a short i18n key. Everything here is non-fatal. */
 export function aiErrorKey(e: unknown): string {
   const m = e instanceof Error ? e.message : '';
