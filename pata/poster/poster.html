@@ -3,118 +3,98 @@
 <head>
 <meta charset="utf-8" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;600;700&family=Noto+Sans+Bengali:wght@600&family=Noto+Sans+Tamil:wght@600&family=Noto+Sans+Telugu:wght@600&family=Noto+Sans+Kannada:wght@600&family=Noto+Sans+Malayalam:wght@600&family=Noto+Sans+Gujarati:wght@600&family=Noto+Sans+Oriya:wght@600&family=Noto+Sans+Gurmukhi:wght@600&display=block" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700;800;900&family=Noto+Sans+Devanagari:wght@400;700&family=Noto+Sans+Bengali:wght@600&family=Noto+Sans+Tamil:wght@600&family=Noto+Sans+Telugu:wght@600&family=Noto+Sans+Kannada:wght@600&family=Noto+Sans+Malayalam:wght@600&family=Noto+Sans+Gujarati:wght@600&family=Noto+Sans+Oriya:wght@600&family=Noto+Sans+Gurmukhi:wght@600&display=block" rel="stylesheet">
 <style>
   :root{
-    --paper:#FBF7F0; --ink:#1A1714; --soft:#5E564D;
-    --clay:#C0562B; --teal:#0E4F54; --rule:#E2D8C9; --band:#F3ECE1;
+    --paper:#FBF7F0; --ink:#17140F; --soft:#6B6357;
+    --clay:#C0562B; --teal:#0E4F54; --rule:#E4DACA; --band:#F2EADD;
   }
   *{margin:0;padding:0;box-sizing:border-box}
-  html,body{background:var(--paper)}
   body{
-    width:1240px; height:1754px;
+    width:1240px;height:1754px;background:var(--paper);color:var(--ink);
     font-family:'Noto Sans','Noto Sans Devanagari',sans-serif;
-    color:var(--ink); -webkit-font-smoothing:antialiased;
-    display:flex; flex-direction:column;
+    -webkit-font-smoothing:antialiased;display:flex;flex-direction:column;
   }
-  .pad{padding:0 64px}
+  .deva{font-family:'Noto Sans Devanagari',sans-serif}
 
-  /* ---------- header ---------- */
-  header{padding:40px 64px 22px; display:flex; align-items:center; gap:26px}
-  .mark{
-    width:104px;height:104px;flex:0 0 104px;border-radius:24px;
-    background:var(--clay); color:#fff;
-    font-family:'Noto Sans Devanagari',sans-serif; font-weight:700; font-size:62px;
-    display:flex;align-items:center;justify-content:center; line-height:1;
-    padding-bottom:6px;
-  }
-  .wordmark{display:flex;align-items:baseline;gap:16px}
-  .wordmark .deva{font-family:'Noto Sans Devanagari',sans-serif;font-weight:700;font-size:60px;line-height:1}
-  .wordmark .latin{font-weight:800;font-size:44px;letter-spacing:.14em;color:var(--soft)}
-  .gloss{font-size:19px;color:var(--soft);margin-top:8px}
-  .gloss b{color:var(--clay);font-weight:600}
+  /* ============ header ============ */
+  header{padding:26px 60px 0;display:flex;align-items:center;gap:22px}
+  .mark{width:92px;height:92px;flex:0 0 92px;border-radius:22px;background:var(--clay);
+        color:#fff;font-family:'Noto Sans Devanagari',sans-serif;font-weight:700;font-size:56px;
+        display:flex;align-items:center;justify-content:center;padding-bottom:6px}
+  .name{display:flex;align-items:baseline;gap:14px}
+  .name .a{font-family:'Noto Sans Devanagari',sans-serif;font-weight:700;font-size:56px;line-height:1}
+  .name .b{font-weight:900;font-size:40px;letter-spacing:.16em;color:var(--soft)}
+  .tag{font-size:21px;color:var(--soft);margin-top:4px}
+  .tag b{color:var(--ink);font-weight:700}
 
-  /* ---------- hero line ---------- */
-  .hero{
-    margin:0 64px 26px; padding:22px 30px;
-    border-left:7px solid var(--clay); background:var(--band);
-    font-size:29px; line-height:1.32; font-weight:600;
-  }
-  .hero span{color:var(--clay)}
+  /* ============ generic band ============ */
+  .band{padding:0 60px;margin-top:18px}
+  .label{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+  .label span{font-size:13px;letter-spacing:.26em;font-weight:800;color:var(--soft)}
+  .label i{flex:1;height:2px;background:var(--rule)}
 
-  /* ---------- section frame ---------- */
-  .sec{margin:0 64px 22px}
-  .sechead{display:flex;align-items:center;gap:14px;margin-bottom:14px}
-  .num{
-    width:34px;height:34px;flex:0 0 34px;border-radius:50%;
-    background:var(--ink);color:var(--paper);font-weight:700;font-size:17px;
-    display:flex;align-items:center;justify-content:center
-  }
-  .sechead h2{font-size:15px;letter-spacing:.2em;font-weight:800;text-transform:uppercase;color:var(--soft)}
-  .sechead .rule{flex:1;height:1px;background:var(--rule)}
+  /* ============ 1. problem ============ */
+  .prob{display:flex;gap:40px;align-items:center}
+  .phone{width:330px;flex:0 0 330px;background:#17140F;border-radius:34px;padding:12px;position:relative;
+         box-shadow:0 10px 28px rgba(23,20,15,.16)}
+  .notch{width:92px;height:7px;border-radius:99px;background:#3B352C;margin:2px auto 9px}
+  .pscreen{background:#fff;border-radius:22px;padding:14px 13px 13px}
+  .ptop{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+  .ptop span{font-size:25px;font-weight:800}
+  .ptop em{font-style:normal;font-size:15px;font-weight:700;color:var(--clay);background:#F8E3D6;padding:4px 10px;border-radius:99px}
+  .grid{display:grid;grid-template-columns:repeat(6,1fr);gap:9px}
+  .kid{aspect-ratio:1;border-radius:50%;background:#E4EDEE}
+  .kid.lost{background:var(--clay);box-shadow:0 0 0 3px #F8E3D6}
+  .pbtn{margin-top:12px;background:var(--teal);color:#fff;border-radius:12px;text-align:center;
+        padding:11px;font-size:14px;font-weight:700}
+  .askbig{flex:1}
+  .askbig .q{font-size:100px;font-weight:900;color:var(--clay);line-height:.9}
+  .askbig h3{font-size:31px;font-weight:800;line-height:1.2;margin-top:6px}
+  .askbig p{font-size:19px;color:var(--soft);margin-top:12px;line-height:1.4}
 
-  /* ---------- problem ---------- */
-  .problem{display:flex;gap:22px}
-  .stat{
-    flex:1;background:#fff;border:1px solid var(--rule);border-radius:16px;
-    padding:18px 22px;
-  }
-  .stat .big{font-size:46px;font-weight:800;line-height:1;color:var(--teal)}
-  .stat .big.warn{color:var(--clay)}
-  .stat p{font-size:17px;line-height:1.4;color:var(--soft);margin-top:10px}
-  .problem-note{font-size:19px;line-height:1.42;margin-top:14px}
-  .problem-note em{font-style:normal;background:#F7E4D8;padding:2px 6px;border-radius:4px}
+  /* ============ 2. solution swap ============ */
+  .swap{display:flex;align-items:center;gap:26px}
+  .old{width:300px;flex:0 0 300px;text-align:center;opacity:.55}
+  .old .score{font-size:92px;font-weight:900;color:#9C948A;position:relative;display:inline-block;line-height:1}
+  .old .score::after{content:'';position:absolute;left:-14px;right:-14px;top:52%;height:7px;background:#9C948A;transform:rotate(-12deg)}
+  .old p{font-size:17px;color:var(--soft);margin-top:20px}
+  .bigarrow{font-size:56px;color:var(--clay);font-weight:900;line-height:1}
+  .new{flex:1;position:relative;background:#fff;border:3px solid var(--clay);border-radius:22px;padding:28px 32px}
+  .new::before{content:'';position:absolute;left:-17px;top:50%;margin-top:-14px;width:28px;height:28px;
+               background:#fff;border-left:3px solid var(--clay);border-bottom:3px solid var(--clay);transform:rotate(45deg)}
+  .new q{font-size:31px;font-weight:800;line-height:1.3;color:var(--clay);display:block}
+  .new p{font-size:17px;color:var(--soft);margin-top:14px}
 
-  /* ---------- solution: the swap ---------- */
-  .swap{display:flex;align-items:stretch;gap:20px}
-  .card{background:#fff;border:1px solid var(--rule);border-radius:16px;padding:18px 22px;flex:1;display:flex;flex-direction:column}
-  .card .tag{font-size:13px;letter-spacing:.14em;font-weight:700;text-transform:uppercase;color:var(--soft);margin-bottom:12px}
-  .card.no{opacity:.72}
-  .card.no .val{font-size:44px;font-weight:800;color:#9A928A;text-decoration:line-through;text-decoration-thickness:4px}
-  .card.no p{font-size:16px;color:var(--soft);margin-top:10px}
-  .card.yes{border-color:var(--clay);border-width:2px;background:#FFF9F5}
-  .card.yes .val{font-size:26px;font-weight:700;line-height:1.3;color:var(--clay)}
-  .card.yes p{font-size:16px;color:var(--soft);margin-top:12px}
-  .arrow{display:flex;align-items:center;font-size:40px;color:var(--clay);font-weight:700}
-
-  /* ---------- how it works ---------- */
-  .flow{display:flex;gap:0;align-items:stretch}
-  .step{flex:1;position:relative;padding:0 14px}
-  .step:first-child{padding-left:0}
-  .step:last-child{padding-right:0}
-  .chip{
-    width:44px;height:44px;border-radius:12px;background:var(--teal);color:#fff;
-    font-weight:800;font-size:19px;display:flex;align-items:center;justify-content:center;margin-bottom:12px
-  }
-  .step h3{font-size:19px;font-weight:700;line-height:1.25;margin-bottom:8px}
-  .step p{font-size:14.5px;line-height:1.42;color:var(--soft)}
-  .step .who{
-    display:inline-block;margin-bottom:10px;font-size:11.5px;letter-spacing:.12em;
-    font-weight:700;text-transform:uppercase;padding:4px 9px;border-radius:999px
-  }
+  /* ============ 3. flow ============ */
+  .flowwrap{position:relative}
+  .flow{display:flex;align-items:stretch;gap:0}
+  .node{flex:1;text-align:center;padding:0 10px;position:relative}
+  .icon{width:90px;height:90px;margin:0 auto 14px;border-radius:24px;display:flex;align-items:center;justify-content:center;
+        background:#fff;border:2px solid var(--rule)}
+  .node.c .icon{border-color:#F0CDB8;background:#FFF7F2}
+  .node h4{font-size:20px;font-weight:800;line-height:1.2}
+  .node small{display:block;font-size:14px;color:var(--soft);margin-top:7px;line-height:1.35}
+  .who{display:inline-block;font-size:11px;letter-spacing:.14em;font-weight:800;padding:4px 10px;border-radius:999px;margin-bottom:10px}
   .who.t{background:#DDEBEC;color:var(--teal)}
-  .who.c{background:#F7E4D8;color:var(--clay)}
-  .step::after{
-    content:'›'; position:absolute; right:-9px; top:8px;
-    font-size:30px; color:var(--rule); font-weight:700;
-  }
-  .step:last-child::after{content:''}
-  .loop{
-    margin-top:14px;padding:12px 20px;border:1px dashed var(--teal);border-radius:12px;
-    font-size:17px;color:var(--teal);font-weight:600;text-align:center
-  }
+  .who.c{background:#F8E3D6;color:var(--clay)}
+  .node::after{content:'';position:absolute;top:56px;right:-7px;width:14px;height:14px;
+               border-top:3px solid var(--rule);border-right:3px solid var(--rule);transform:rotate(45deg)}
+  .node:last-child::after{display:none}
+  .loopline{margin-top:12px}
 
-  /* ---------- built to survive ---------- */
-  .facts{display:flex;gap:18px}
-  .fact{flex:1;text-align:center;background:#fff;border:1px solid var(--rule);border-radius:16px;padding:14px 12px}
-  .fact .k{font-size:17px;font-weight:700;color:var(--teal)}
-  .fact .v{font-size:14.5px;color:var(--soft);margin-top:6px;line-height:1.35}
+  /* ============ 4. icon facts ============ */
+  .facts{display:flex;gap:16px}
+  .fact{flex:1;text-align:center;background:#fff;border:2px solid var(--rule);border-radius:18px;padding:13px 10px 12px}
+  .fact svg{margin-bottom:9px}
+  .fact b{display:block;font-size:17px}
+  .fact small{display:block;font-size:13.5px;color:var(--soft);margin-top:4px}
 
-  /* ---------- languages ---------- */
-  .langs{margin:0 64px 0;padding:18px 24px;background:var(--band);border-radius:16px}
-  .langs .cap{font-size:13px;letter-spacing:.2em;font-weight:800;text-transform:uppercase;color:var(--soft);margin-bottom:12px}
-  .langrow{display:flex;flex-wrap:wrap;gap:9px}
-  .lang{background:#fff;border:1px solid var(--rule);border-radius:999px;padding:7px 15px;font-size:17px;font-weight:600}
+  /* ============ languages ============ */
+  .langs{margin:20px 60px 0;padding:15px 24px;background:var(--band);border-radius:18px;text-align:center}
+  .langs .cap{font-size:12px;letter-spacing:.22em;font-weight:800;color:var(--soft);margin-bottom:11px}
+  .row{display:flex;flex-wrap:wrap;gap:9px;justify-content:center}
+  .chip{background:#fff;border:1px solid var(--rule);border-radius:999px;padding:6px 14px;font-size:17px;font-weight:600}
   .l-hi,.l-mr{font-family:'Noto Sans Devanagari',sans-serif}
   .l-bn,.l-as{font-family:'Noto Sans Bengali',sans-serif}
   .l-ta{font-family:'Noto Sans Tamil',sans-serif}
@@ -125,14 +105,19 @@
   .l-or{font-family:'Noto Sans Oriya',sans-serif}
   .l-pa{font-family:'Noto Sans Gurmukhi',sans-serif}
 
-  /* ---------- footer ---------- */
-  footer{
-    margin-top:auto;padding:18px 64px 26px;display:flex;justify-content:space-between;
-    align-items:flex-end;border-top:1px solid var(--rule);
-  }
-  footer .stack{font-size:14px;color:var(--soft);line-height:1.5;max-width:720px}
-  footer .stack b{color:var(--ink)}
-  footer .kicker{text-align:right;font-size:15px;color:var(--clay);font-weight:700;line-height:1.4}
+  .inbox{background:#fff;border:2px solid var(--rule);border-radius:20px;overflow:hidden}
+  .irow{display:flex;align-items:center;gap:18px;padding:11px 22px;border-bottom:1px solid var(--rule)}
+  .irow:last-child{border-bottom:none}
+  .irow b{font-size:21px;width:110px;flex:0 0 110px}
+  .sc{font-size:19px;font-weight:800;padding:5px 15px;border-radius:99px;flex:0 0 auto}
+  .sc.bad{background:#F8E3D6;color:var(--clay)}
+  .sc.ok{background:#DDEBEC;color:var(--teal)}
+  .mis{font-size:18px;color:var(--soft)}
+  .inbox-note{font-size:14.5px;color:var(--soft);margin-top:9px;text-align:center}
+
+  footer{margin-top:auto;padding:14px 60px 16px;display:flex;justify-content:space-between;align-items:center;
+         border-top:2px solid var(--rule);font-size:15px;color:var(--soft)}
+  footer b{color:var(--clay);font-size:17px}
 </style>
 </head>
 <body>
@@ -140,125 +125,206 @@
 <header>
   <div class="mark">प</div>
   <div>
-    <div class="wordmark">
-      <span class="deva">पता</span>
-      <span class="latin">PATA</span>
-    </div>
-    <p class="gloss">In Hindi, <b>पता</b> means both <b>“to know”</b> and <b>“an address”</b> — knowing where a child actually is.</p>
+    <div class="name"><span class="a">पता</span><span class="b">PATA</span></div>
+    <p class="tag"><b>पता</b> — to know. Twenty seconds to know who is lost, and why.</p>
   </div>
 </header>
 
-<div class="hero">
-  A teacher of forty children cannot tell who understood today's lesson.
-  <span>PATA tells her in twenty seconds — and tells her what they got wrong, not just how many.</span>
-</div>
-
-<!-- 1. THE PROBLEM -->
-<section class="sec">
-  <div class="sechead"><span class="num">1</span><h2>The problem</h2><span class="rule"></span></div>
-  <div class="problem">
-    <div class="stat"><div class="big">40</div><p>children in one government school classroom</p></div>
-    <div class="stat"><div class="big">7</div><p>grade levels sitting in that same room</p></div>
-    <div class="stat"><div class="big warn">0</div><p>minutes in her day to find out who is lost</p></div>
+<!-- ================= 1. THE PROBLEM ================= -->
+<section class="band">
+  <div class="label"><span>THE PROBLEM</span><i></i></div>
+  <div class="prob">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="pscreen">
+        <div class="ptop"><span>42 − 17 = ?</span><em>0:18</em></div>
+        <div class="grid" id="grid"></div>
+        <div class="pbtn">tap whoever missed it</div>
+      </div>
+    </div>
+    <div class="askbig">
+      <div class="q">?</div>
+      <h3>40 children.<br>7 grade levels.<br>One teacher.</h3>
+      <p>By the end of the lesson she cannot tell who followed it — and has no minute in the day to find out.</p>
+    </div>
   </div>
-  <p class="problem-note">
-    She is not failing them — there is simply <em>no moment in the day</em> where finding out is possible.
-    And a test result a week later tells her a number, never the mistake behind it.
-  </p>
 </section>
 
-<!-- 2. THE SOLUTION -->
-<section class="sec">
-  <div class="sechead"><span class="num">2</span><h2>The solution — report the mistake, not the mark</h2><span class="rule"></span></div>
+<!-- ================= 2. THE SOLUTION ================= -->
+<section class="band">
+  <div class="label"><span>THE IDEA — REPORT THE MISTAKE, NOT THE MARK</span><i></i></div>
   <div class="swap">
-    <div class="card no">
-      <div class="tag">What every app gives her</div>
-      <div class="val">3 / 5</div>
-      <p>True, and useless. She cannot teach a number tomorrow morning.</p>
-      <p style="margin-top:auto;padding-top:14px;border-top:1px solid var(--rule);font-size:15px">
-        And it usually reaches her a week later, when the lesson has moved on.</p>
+    <div class="old">
+      <div class="score">3/5</div>
+      <p>a score she can't teach</p>
     </div>
-    <div class="arrow">→</div>
-    <div class="card yes">
-      <div class="tag">What PATA gives her</div>
-      <div class="val">“Eight children are still taking the smaller digit from the bigger one, whichever is on top.”</div>
-      <p>Every wrong option in the app is tied to one named misconception — so the result is a sentence she can put on the board.</p>
+    <div class="bigarrow">→</div>
+    <div class="new">
+      <q>Eight children still take the smaller digit from the bigger one.</q>
+      <p>Every wrong option is tied to one named misconception — so the result is a sentence for tomorrow's board.</p>
     </div>
   </div>
 </section>
 
-<!-- 3. HOW IT WORKS -->
-<section class="sec">
-  <div class="sechead"><span class="num">3</span><h2>How it works</h2><span class="rule"></span></div>
-  <div class="flow">
-    <div class="step">
-      <div class="chip">1</div><span class="who t">Teacher</span>
-      <h3>Ask</h3>
-      <p>She reads one question aloud. The children answer A, B, C or D on their fingers — no devices in class.</p>
+<!-- ================= 3. HOW IT WORKS ================= -->
+<section class="band">
+  <div class="label"><span>HOW IT WORKS</span><i></i></div>
+  <div class="flowwrap">
+    <div class="flow">
+
+      <div class="node t">
+        <div class="icon">
+          <svg width="52" height="52" viewBox="0 0 48 48" fill="none" stroke="#0E4F54" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 10h32v22H22l-10 8v-8H8z"/><path d="M19 17a5 5 0 0 1 9 3c0 3-4 3-4 6"/><circle cx="24" cy="30" r="1.6" fill="#0E4F54" stroke="none"/>
+          </svg>
+        </div>
+        <span class="who t">TEACHER</span>
+        <h4>Ask aloud</h4>
+        <small>Children answer on their fingers</small>
+      </div>
+
+      <div class="node t">
+        <div class="icon">
+          <svg width="52" height="52" viewBox="0 0 48 48" fill="none" stroke="#0E4F54" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="11" y="4" width="26" height="40" rx="4"/>
+            <circle cx="18" cy="15" r="2.4" fill="#0E4F54" stroke="none"/><circle cx="24" cy="15" r="2.4" fill="#C0562B" stroke="none"/><circle cx="30" cy="15" r="2.4" fill="#0E4F54" stroke="none"/>
+            <circle cx="18" cy="23" r="2.4" fill="#C0562B" stroke="none"/><circle cx="24" cy="23" r="2.4" fill="#0E4F54" stroke="none"/><circle cx="30" cy="23" r="2.4" fill="#0E4F54" stroke="none"/>
+            <path d="M26 30l9 5-4 1.5 2.5 4.5-2.6 1.5-2.6-4.5L26 41z" fill="#17140F" stroke="none"/>
+          </svg>
+        </div>
+        <span class="who t">TEACHER · 20s</span>
+        <h4>Tap who missed</h4>
+        <small>On her own seating plan</small>
+      </div>
+
+      <div class="node t">
+        <div class="icon">
+          <svg width="52" height="52" viewBox="0 0 48 48" fill="none" stroke="#0E4F54" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 22L42 8 30 42l-7-13z"/><path d="M23 29l19-21"/>
+          </svg>
+        </div>
+        <span class="who t">TEACHER</span>
+        <h4>Send home</h4>
+        <small>Only to those children</small>
+      </div>
+
+      <div class="node c">
+        <div class="icon">
+          <svg width="52" height="52" viewBox="0 0 48 48" fill="none" stroke="#C0562B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M24 6a12 12 0 0 1 7 21.7V32H17v-4.3A12 12 0 0 1 24 6z"/><path d="M19 37h10M21 42h6"/>
+          </svg>
+        </div>
+        <span class="who c">CHILD</span>
+        <h4>Understand</h4>
+        <small>Explained in their language</small>
+      </div>
+
+      <div class="node c">
+        <div class="icon">
+          <svg width="52" height="52" viewBox="0 0 48 48" fill="none" stroke="#C0562B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="5" y="30" width="10" height="13" rx="2"/><rect x="19" y="21" width="10" height="22" rx="2"/><rect x="33" y="10" width="10" height="33" rx="2"/>
+            <path d="M8 22l7-7 6 5 9-11" stroke="#17140F"/><path d="M27 9h6v6" stroke="#17140F"/>
+          </svg>
+        </div>
+        <span class="who c">CHILD</span>
+        <h4>5 questions</h4>
+        <small>Harder if right, easier if wrong</small>
+      </div>
+
     </div>
-    <div class="step">
-      <div class="chip">2</div><span class="who t">Teacher</span>
-      <h3>Tap · 20 sec</h3>
-      <p>She taps whoever got it wrong on a picture of her own seating plan. One extra tap names the common wrong answer.</p>
-    </div>
-    <div class="step">
-      <div class="chip">3</div><span class="who t">Teacher</span>
-      <h3>Send home</h3>
-      <p>Per-child, never an average. One tap sends exactly those children practice for the evening.</p>
-    </div>
-    <div class="step">
-      <div class="chip">4</div><span class="who c">Child</span>
-      <h3>Understand</h3>
-      <p>At home they open their own app, in their own language, and the idea is explained — read aloud if they cannot read it.</p>
-    </div>
-    <div class="step">
-      <div class="chip">5</div><span class="who c">Child</span>
-      <h3>Practise</h3>
-      <p>Five questions that get harder if they are getting it and easier if they are not. Answers always shown.</p>
-    </div>
+
+    <svg class="loopline" width="1120" height="62" viewBox="0 0 1120 62" fill="none">
+      <path d="M1065 6 C1065 44, 1020 52, 900 52 L170 52 C70 52, 55 44, 55 10"
+            stroke="#0E4F54" stroke-width="3" stroke-dasharray="9 8" fill="none"/>
+      <path d="M55 4 L49 16 L61 16 Z" fill="#0E4F54"/>
+      <rect x="392" y="33" width="336" height="38" rx="19" fill="#FBF7F0"/>
+      <text x="560" y="58" text-anchor="middle" font-family="Noto Sans" font-size="19" font-weight="700" fill="#0E4F54">
+        by morning, she knows the mistake
+      </text>
+    </svg>
   </div>
-  <div class="loop">↺ By morning she sees, for each child by name, the mistake they are still making — and the loop starts again.</div>
 </section>
 
-<!-- 4. BUILT FOR WHERE IT IS NEEDED -->
-<section class="sec">
-  <div class="sechead"><span class="num">4</span><h2>Built for where it is actually needed</h2><span class="rule"></span></div>
+<!-- ============ 3b. WHAT COMES BACK ============ -->
+<section class="band" style="margin-top:22px">
+  <div class="label"><span>WHAT LANDS ON HER PHONE BY MORNING</span><i></i></div>
+  <div class="inbox">
+    <div class="irow">
+      <b>Aarav</b><span class="sc bad">1/5</span>
+      <span class="mis">still takes the smaller digit from the bigger one</span>
+    </div>
+    <div class="irow">
+      <b>Meera</b><span class="sc ok">4/5</span>
+      <span class="mis">reached level 4 — has it</span>
+    </div>
+    <div class="irow">
+      <b>Kabir</b><span class="sc bad">2/5</span>
+      <span class="mis">borrows, then forgets to reduce the tens</span>
+    </div>
+  </div>
+  <p class="inbox-note">Per child, by name. Never a class average, never a teacher ranking.</p>
+</section>
+
+<!-- ================= 4. FACTS ================= -->
+<section class="band" style="margin-top:20px">
   <div class="facts">
-    <div class="fact"><div class="k">Fully offline</div><div class="v">Checks, reading, practice, reports — with the network off, permanently</div></div>
-    <div class="fact"><div class="k">Her own phone</div><div class="v">24 MB. No tablets, no projector, no new hardware</div></div>
-    <div class="fact"><div class="k">No account</div><div class="v">No password, no email, nothing to forget or reset</div></div>
-    <div class="fact"><div class="k">Names stay put</div><div class="v">No child's name ever leaves the device</div></div>
-    <div class="fact"><div class="k">No rankings</div><div class="v">Teachers are never scored, compared or named</div></div>
+    <div class="fact">
+      <svg width="34" height="34" viewBox="0 0 48 48" fill="none" stroke="#0E4F54" stroke-width="3" stroke-linecap="round">
+        <path d="M6 18a26 26 0 0 1 36 0M13 27a17 17 0 0 1 22 0M20 35a7 7 0 0 1 8 0"/><circle cx="24" cy="42" r="2" fill="#0E4F54" stroke="none"/><path d="M6 6l36 36" stroke="#C0562B"/>
+      </svg>
+      <b>Fully offline</b><small>network never needed</small>
+    </div>
+    <div class="fact">
+      <svg width="34" height="34" viewBox="0 0 48 48" fill="none" stroke="#0E4F54" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="13" y="4" width="22" height="40" rx="4"/><path d="M21 38h6"/>
+      </svg>
+      <b>Her own phone</b><small>24 MB · no new hardware</small>
+    </div>
+    <div class="fact">
+      <svg width="34" height="34" viewBox="0 0 48 48" fill="none" stroke="#0E4F54" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="19" cy="20" r="9"/><path d="M26 25l14 14-4 4-3-3 2-2-3-3 2-2-3-3"/><path d="M6 6l36 36" stroke="#C0562B"/>
+      </svg>
+      <b>No account</b><small>no password to forget</small>
+    </div>
+    <div class="fact">
+      <svg width="34" height="34" viewBox="0 0 48 48" fill="none" stroke="#0E4F54" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="10" y="21" width="28" height="21" rx="4"/><path d="M17 21v-7a7 7 0 0 1 14 0v7"/><circle cx="24" cy="31" r="2.5" fill="#0E4F54" stroke="none"/>
+      </svg>
+      <b>Names stay put</b><small>never leave the device</small>
+    </div>
+    <div class="fact">
+      <svg width="34" height="34" viewBox="0 0 48 48" fill="none" stroke="#0E4F54" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="24" cy="24" r="18"/><path d="M6 24h36M24 6c5 6 5 30 0 36M24 6c-5 6-5 30 0 36"/>
+      </svg>
+      <b>12 languages</b><small>every screen, every question</small>
+    </div>
   </div>
 </section>
 
 <div class="langs">
-  <div class="cap">Every screen, every lesson, every question — in twelve Indian languages</div>
-  <div class="langrow">
-    <span class="lang l-hi">हिन्दी</span>
-    <span class="lang">English</span>
-    <span class="lang l-mr">मराठी</span>
-    <span class="lang l-bn">বাংলা</span>
-    <span class="lang l-ta">தமிழ்</span>
-    <span class="lang l-te">తెలుగు</span>
-    <span class="lang l-kn">ಕನ್ನಡ</span>
-    <span class="lang l-ml">മലയാളം</span>
-    <span class="lang l-gu">ગુજરાતી</span>
-    <span class="lang l-or">ଓଡ଼ିଆ</span>
-    <span class="lang l-pa">ਪੰਜਾਬੀ</span>
-    <span class="lang l-as">অসমীয়া</span>
+  <div class="cap">SPEAKS</div>
+  <div class="row">
+    <span class="chip l-hi">हिन्दी</span><span class="chip">English</span><span class="chip l-mr">मराठी</span>
+    <span class="chip l-bn">বাংলা</span><span class="chip l-ta">தமிழ்</span><span class="chip l-te">తెలుగు</span>
+    <span class="chip l-kn">ಕನ್ನಡ</span><span class="chip l-ml">മലയാളം</span><span class="chip l-gu">ગુજરાતી</span>
+    <span class="chip l-or">ଓଡ଼ିଆ</span><span class="chip l-pa">ਪੰਜਾਬੀ</span><span class="chip l-as">অসমীয়া</span>
   </div>
 </div>
 
 <footer>
-  <div class="stack">
-    <b>Android app</b> · Vite + TypeScript, no framework · Capacitor · IndexedDB ·
-    Tesseract.js on-device OCR in 12 scripts · Cloudflare Worker proxy.<br>
-    <b>AI is optional.</b> The 20-second check, the question bank, OCR, the adaptive quiz
-    generator and all twelve languages run on the phone with no key and no signal.
-  </div>
-  <div class="kicker">Twenty seconds of her day.<br>Every child, every lesson.</div>
+  <span>Android · works with the network off · AI optional</span>
+  <b>Twenty seconds of her day. Every child, every lesson.</b>
 </footer>
 
+<script>
+  // 40 children; the 8 who missed it are the point of the whole picture.
+  const lost = new Set([3, 9, 12, 19, 23, 28, 31, 36]);
+  const g = document.getElementById('grid');
+  for (let i = 0; i < 40; i++) {
+    const d = document.createElement('div');
+    d.className = 'kid' + (lost.has(i) ? ' lost' : '');
+    g.appendChild(d);
+  }
+</script>
 </body>
 </html>
