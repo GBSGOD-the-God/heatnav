@@ -52,11 +52,17 @@ class RiskAssessment {
     required this.level,
     required this.heatIndexC,
     required this.factors,
+    this.isMeasured = false,
   });
 
   final RiskLevel level;
-  final double heatIndexC;
+
+  /// Forecast-based heat index; null for ratings from an on-site measurement.
+  final double? heatIndexC;
   final List<RiskFactor> factors;
+
+  /// True when the band came from an on-site sensor, not the forecast.
+  final bool isMeasured;
 }
 
 /// Transparent, rule-based heat-risk engine.
@@ -151,6 +157,36 @@ abstract final class RiskEngine {
     }
 
     return RiskAssessment(level: level, heatIndexC: hi, factors: factors);
+  }
+
+  /// Rating from an on-site measurement instead of the forecast.
+  ///
+  /// [measuredLevel] replaces the forecast base band; the personal
+  /// vulnerability rule is applied exactly as in [assess]. Nothing here can
+  /// lower the band. Environmental modifiers (UV, air quality) and plan
+  /// exertion are not applied: the measured WBGT already includes solar
+  /// load, its band thresholds already assume heavy work, and air quality
+  /// comes from the city feed this rating deliberately doesn't use.
+  static RiskAssessment assessMeasured({
+    required RiskLevel measuredLevel,
+    required List<RiskFactor> measurementFactors,
+    UserProfile? profile,
+  }) {
+    var level = measuredLevel;
+    final factors = [...measurementFactors];
+    if (profile != null && level >= RiskLevel.yellow) {
+      final personal = _personalFactors(profile);
+      if (personal.isNotEmpty) {
+        level = level.raise();
+        factors.addAll(personal);
+      }
+    }
+    return RiskAssessment(
+      level: level,
+      heatIndexC: null,
+      factors: factors,
+      isMeasured: true,
+    );
   }
 
   /// NWS heat-index categories: Caution 27–32 °C (80–90 °F), Extreme Caution

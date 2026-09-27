@@ -1,7 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/utils/clock.dart';
 import '../../community/presentation/community_providers.dart';
 import '../../profile/presentation/profile_controller.dart';
+import '../../signal/domain/signal_freshness.dart';
+import '../../signal/presentation/signal_providers.dart';
 import '../../weather/presentation/weather_providers.dart';
 import '../data/plan_model.dart';
 import '../data/plan_repository.dart';
@@ -53,14 +56,28 @@ final planByIdProvider = Provider.family<Plan?, String>((ref, id) {
 
 /// Full analysis for one plan; null until weather is available.
 final planAssessmentProvider =
+///
+/// A fresh Signal reading is used only for a plan that is underway or about
+/// to start — a measurement taken now says nothing about this afternoon or
+/// tomorrow.
     Provider.family<PlanAssessment?, String>((ref, id) {
   final plan = ref.watch(planByIdProvider(id));
   final weather = ref.watch(weatherProvider).valueOrNull;
   if (plan == null || weather == null) return null;
+  final reading = ref.watch(ratingSignalReadingProvider);
+  final measured = reading != null &&
+          SignalFreshnessRules.appliesToPlan(
+            leaveAt: plan.leaveAt,
+            returnAt: plan.returnAt,
+            now: ref.watch(currentTimeProvider),
+          )
+      ? reading
+      : null;
   return PlanAnalyzer.analyze(
     plan: plan,
     weather: weather,
     profile: ref.watch(profileControllerProvider),
     resources: ref.watch(communityResourcesProvider),
+    measured: measured,
   );
 });

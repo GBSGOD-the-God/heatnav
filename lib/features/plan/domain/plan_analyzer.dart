@@ -4,6 +4,8 @@ import '../../../core/domain/profile/user_profile.dart';
 import '../../../core/domain/risk/risk_engine.dart';
 import '../../../core/domain/risk/risk_level.dart';
 import '../../community/data/report_model.dart';
+import '../../signal/domain/signal_rating.dart';
+import '../../signal/domain/signal_reading.dart';
 import '../../weather/data/weather_models.dart';
 import '../data/plan_model.dart';
 
@@ -42,9 +44,13 @@ class PlanAssessment {
     required this.betterWindow,
     required this.nearbyResources,
     this.forecastUnavailable = false,
+    this.measuredBy,
   });
 
   final RiskAssessment assessment;
+
+  /// The on-site Signal reading the verdict came from, if any.
+  final SignalReading? measuredBy;
 
   /// The hour inside the plan window with the highest heat index.
   final HourlyPoint? worstHour;
@@ -58,11 +64,14 @@ class PlanAssessment {
 
 /// Turns (plan + forecast + profile + community) into an explainable verdict.
 abstract final class PlanAnalyzer {
+  /// [measured] is a fresh on-site Signal reading that applies to this plan
+  /// right now; when given it replaces the forecast for the verdict.
   static PlanAssessment analyze({
     required Plan plan,
     required WeatherBundle weather,
     UserProfile? profile,
     List<CommunityReport> resources = const [],
+    SignalReading? measured,
   }) {
     final window = _hoursIn(weather, plan.leaveAt, plan.returnAt);
     if (window.isEmpty) {
@@ -91,21 +100,27 @@ abstract final class PlanAnalyzer {
       durationMinutes: plan.durationMinutes,
       exertion: plan.activity.exertion,
     );
-    final assessment = RiskEngine.assess(
-      conditions: ConditionsInput(
-        tempC: worst.tempC,
-        relativeHumidity: worst.humidity,
-        uvIndex: worst.uvIndex,
-        usAqi: weather.usAqi,
-      ),
-      profile: profile,
-      plan: planContext,
-    );
+    final assessment = measured != null
+        ? SignalRating.assess(measured, profile)
+        : RiskEngine.assess(
+            conditions: ConditionsInput(
+              tempC: worst.tempC,
+              relativeHumidity: worst.humidity,
+              uvIndex: worst.uvIndex,
+              usAqi: weather.usAqi,
+            ),
+            profile: profile,
+            plan: planContext,
+          );
 
     return PlanAssessment(
       assessment: assessment,
       worstHour: worst,
-      checklist: _buildChecklist(plan, assessment, worst, profile),
+      measuredBy: measured,
+      checklist: [
+        if (measured != null) _signalWorkRest(measured),
+        ..._buildChecklist(plan, assessment, worst, profile),
+      ],
       betterWindow: _findBetterWindow(
         plan: plan,
         weather: weather,
@@ -114,6 +129,17 @@ abstract final class PlanAnalyzer {
         currentLevel: assessment.level,
       ),
       nearbyResources: _nearest(resources, plan),
+    );
+  }
+
+  static ChecklistItem _signalWorkRest(SignalReading reading) {
+    final band = reading.signalBand;
+    return ChecklistItem(
+      label: 'Signal work/rest: ${band.workRest}',
+      reason: 'Measured on site: ${band.label} band, WBGT '
+          '${reading.wbgt.toStringAsFixed(1)} °C. ${band.water}. '
+          'Heavy-work limits from US Army TB MED 507.',
+      icon: Icons.timer_outlined,
     );
   }
 

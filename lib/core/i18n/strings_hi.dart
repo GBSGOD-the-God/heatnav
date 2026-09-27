@@ -236,4 +236,93 @@ const Map<String, String> hindiStrings = {
   'Heat history': 'हीट इतिहास',
   'Achievements': 'उपलब्धियाँ',
   'Timeline': 'समयरेखा',
+
+  // --- HeatNav Signal: card ----------------------------------------------
+  'HeatNav Signal': 'HeatNav सिग्नल',
+  'Sync': 'सिंक करें',
+  'Sync again': 'फिर से सिंक करें',
+  'Measures the heat right where you are.': 'ठीक आपकी जगह पर गर्मी मापता है।',
+  'Looking for a Signal nearby…': 'पास में सिग्नल खोज रहे हैं…',
+  'measured just now': 'अभी मापा गया',
+  'measured {n} min ago': '{n} मिनट पहले मापा गया',
+  'may be out of date — sync again': 'पुराना हो सकता है — फिर से सिंक करें',
+  'Last reading is over an hour old — kept in history, not used for ratings.':
+      'आखिरी रीडिंग एक घंटे से ज़्यादा पुरानी है — इतिहास में रखी गई है, '
+          'रेटिंग में इस्तेमाल नहीं होती।',
+  'Globe {g} · Wet bulb {w} · Air {a}': 'ग्लोब {g} · वेट बल्ब {w} · हवा {a}',
+  'Heavy work limits · US Army TB MED 507':
+      'भारी काम की सीमाएँ · US Army TB MED 507',
+  'Measured here': 'यहीं मापा गया',
+
+  // --- HeatNav Signal: bands and work/rest rules (TB MED 507) ------------
+  'Green': 'हरा',
+  'Yellow': 'पीला',
+  'Orange': 'नारंगी',
+  'Red': 'लाल',
+  'Flashing red': 'चमकता लाल',
+  'Work normally': 'सामान्य रूप से काम करें',
+  '40 min work / 20 rest': '40 मिनट काम / 20 मिनट आराम',
+  '30 min work / 30 rest': '30 मिनट काम / 30 मिनट आराम',
+  '20 min work / 40 rest': '20 मिनट काम / 40 मिनट आराम',
+  'Stop heavy work': 'भारी काम बंद करें',
+  'Drink water hourly': 'हर घंटे पानी पिएँ',
+  '~0.7 L per hour': 'लगभग 0.7 लीटर प्रति घंटा',
+  '~1 L per hour': 'लगभग 1 लीटर प्रति घंटा',
+
+  // --- HeatNav Signal: sync errors ---------------------------------------
+  'Bluetooth is off. Turn it on and tap Sync again.':
+      'ब्लूटूथ बंद है। इसे चालू करें और फिर से सिंक दबाएँ।',
+  'HeatNav needs the Nearby devices permission to read the Signal. '
+          'Allow it in your phone settings, then tap Sync again.':
+      'सिग्नल पढ़ने के लिए HeatNav को "आस-पास के डिवाइस" की अनुमति चाहिए। '
+          'फ़ोन की सेटिंग में अनुमति दें, फिर से सिंक दबाएँ।',
+  'Turn on Location, then tap Sync again. This phone needs it to scan '
+          'for Bluetooth devices.':
+      'लोकेशन चालू करें, फिर से सिंक दबाएँ। इस फ़ोन को ब्लूटूथ डिवाइस खोजने '
+          'के लिए इसकी ज़रूरत है।',
+  'No HeatNav Signal found nearby. Move closer to the Signal pole and '
+          'tap Sync again.':
+      'पास में कोई HeatNav सिग्नल नहीं मिला। सिग्नल वाले खंभे के पास जाएँ और '
+          'फिर से सिंक दबाएँ।',
+  'A Signal was found, but its data could not be read. Wait a few '
+          'seconds and tap Sync again.':
+      'सिग्नल मिला, लेकिन उसका डेटा पढ़ा नहीं जा सका। कुछ सेकंड रुकें और '
+          'फिर से सिंक दबाएँ।',
+  'This device can\'t scan for Bluetooth signals. Use HeatNav on an '
+          'Android phone or iPhone to sync.':
+      'यह डिवाइस ब्लूटूथ सिग्नल स्कैन नहीं कर सकता। सिंक करने के लिए Android '
+          'फ़ोन या iPhone पर HeatNav इस्तेमाल करें।',
+
+  // --- HeatNav Signal: "Why this rating?" rows ---------------------------
+  'Source: {source}': 'स्रोत: {source}',
+  'Measured on site': 'मौके पर मापा गया',
+  'WBGT = 0.7 × wet bulb + 0.2 × globe + 0.1 × air':
+      'WBGT = 0.7 × वेट बल्ब + 0.2 × ग्लोब + 0.1 × हवा',
+  'Work/rest limits': 'काम/आराम की सीमाएँ',
+  'City forecast not used': 'शहर का पूर्वानुमान इस्तेमाल नहीं हुआ',
+  'This rating comes from the on-site measurement, not the city forecast.':
+      'यह रेटिंग मौके पर हुई माप से है, शहर के पूर्वानुमान से नहीं।',
+
+  // --- HeatNav Signal: history -------------------------------------------
+  'HeatNav Signal — today': 'HeatNav सिग्नल — आज',
+  'No Signal readings today.': 'आज कोई सिग्नल रीडिंग नहीं।',
+  '{d} in {band}': '{band} में {d}',
+  '{h} h {m} m': '{h} घं {m} मि',
+  '{m} m': '{m} मि',
+  'Each reading counts until the next one, for up to 30 minutes.':
+      'हर रीडिंग अगली रीडिंग तक गिनी जाती है, ज़्यादा से ज़्यादा 30 मिनट तक।',
+  'Export CSV': 'CSV निर्यात करें',
+  'Stored only on this phone. It leaves only when you export and share it.':
+      'सिर्फ़ इसी फ़ोन पर सहेजा गया। यह तभी बाहर जाता है जब आप इसे निर्यात '
+          'करके साझा करें।',
+
+  // --- HeatNav Signal: rehearsal (debug builds only) ---------------------
+  'Developer': 'डेवलपर',
+  'Simulate a Signal': 'सिग्नल का अभ्यास (नकली रीडिंग)',
+  'Debug builds only, for rehearsal. Each Sync returns a hotter fake '
+          'reading, tagged SIMULATED. Turning this off deletes the fake '
+          'readings.':
+      'सिर्फ़ डीबग बिल्ड में, अभ्यास के लिए। हर सिंक पहले से गर्म नकली रीडिंग '
+          'देता है, जिस पर SIMULATED लिखा होता है। इसे बंद करने पर नकली '
+          'रीडिंग मिट जाती हैं।',
 };

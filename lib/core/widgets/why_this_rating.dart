@@ -72,12 +72,18 @@ class _FactorRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(factor.title, style: theme.textTheme.titleSmall),
+                Text(
+                  context.tr(factor.title),
+                  style: theme.textTheme.titleSmall,
+                ),
                 const SizedBox(height: 2),
-                Text(factor.detail, style: theme.textTheme.bodySmall),
+                Text(
+                  context.tr(factor.detail),
+                  style: theme.textTheme.bodySmall,
+                ),
                 const SizedBox(height: 4),
                 Text(
-                  'Source: ${factor.source}',
+                  context.tr('Source: {source}', {'source': factor.source}),
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                     fontStyle: FontStyle.italic,

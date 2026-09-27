@@ -9,6 +9,7 @@ import '../../../core/i18n/locale_controller.dart';
 import '../../../core/widgets/choice_chip_group.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../onboarding/presentation/location_picker.dart';
+import '../../signal/presentation/signal_providers.dart';
 import 'profile_controller.dart';
 import 'settings_controller.dart';
 
@@ -219,6 +220,27 @@ class ProfileScreen extends ConsumerWidget {
               ],
             ),
           ),
+          if (SignalController.simulationAvailable) ...[
+            const SectionHeader('Developer'),
+            Card(
+              child: SwitchListTile(
+                value: ref.watch(
+                  signalReadingProvider.select((s) => s.simulate),
+                ),
+                onChanged: (v) =>
+                    ref.read(signalReadingProvider.notifier).setSimulate(v),
+                secondary: const Icon(Icons.science_outlined),
+                title: Text(context.tr('Simulate a Signal')),
+                subtitle: Text(
+                  context.tr(
+                    'Debug builds only, for rehearsal. Each Sync returns a '
+                    'hotter fake reading, tagged SIMULATED. Turning this off '
+                    'deletes the fake readings.',
+                  ),
+                ),
+              ),
+            ),
+          ],
           const SectionHeader('About'),
           Card(
             child: Column(

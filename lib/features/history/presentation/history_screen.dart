@@ -8,6 +8,8 @@ import '../../../core/widgets/section_header.dart';
 import '../../community/presentation/community_providers.dart';
 import '../../plan/presentation/plan_providers.dart';
 import '../../recovery/data/checkin_model.dart';
+import '../../signal/presentation/signal_history_section.dart';
+import '../../signal/presentation/signal_providers.dart';
 
 /// Personal heat timeline: past plans, recovery check-ins, own reports,
 /// plus lightweight achievements computed from real activity.
@@ -61,9 +63,13 @@ class HistoryScreen extends ConsumerWidget {
       reportCount: myReports.length,
     );
 
+    final hasSignal = ref.watch(
+      signalReadingProvider.select((s) => s.history.isNotEmpty),
+    );
+
     return Scaffold(
       appBar: AppBar(title: Text(context.tr('Heat history'))),
-      body: entries.isEmpty && achievements.isEmpty
+      body: entries.isEmpty && achievements.isEmpty && !hasSignal
           ? const EmptyState(
               icon: Icons.timeline,
               title: 'Your story starts today',
@@ -73,6 +79,7 @@ class HistoryScreen extends ConsumerWidget {
           : ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
               children: [
+                const SignalHistorySection(),
                 if (achievements.isNotEmpty) ...[
                   const SectionHeader('Achievements'),
                   Wrap(
@@ -88,7 +95,7 @@ class HistoryScreen extends ConsumerWidget {
                     ],
                   ),
                 ],
-                const SectionHeader('Timeline'),
+                if (entries.isNotEmpty) const SectionHeader('Timeline'),
                 for (final (entry, time) in entries)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),

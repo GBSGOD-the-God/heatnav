@@ -45,6 +45,8 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>HeatNav reads the heat measured by a nearby HeatNav Signal sensor. It only listens to the sensor's broadcast; it never pairs or connects.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>HeatNav uses your location to show accurate heat risk, forecasts and community reports for exactly where you are.</string>
 </dict>

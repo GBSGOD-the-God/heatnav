@@ -3,12 +3,14 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/i18n/app_localizations.dart';
 import '../../../core/theme/risk_palette.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/risk_badge.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../../core/widgets/skeleton.dart';
 import '../../../core/widgets/why_this_rating.dart';
+import '../../signal/presentation/signal_widgets.dart';
 import 'plan_providers.dart';
 
 /// The heart of the demo: a plan's verdict, why, a better window, and the
@@ -193,7 +195,10 @@ class _VerdictCard extends ConsumerWidget {
     final palette = context.riskPalette;
     final analysis = ref.watch(planAssessmentProvider(planId))!;
     final level = analysis.assessment.level;
-    final worst = analysis.worstHour;
+    final measured = analysis.measuredBy;
+    // A measured verdict describes now, so the forecast's peak hour doesn't
+    // belong on it.
+    final worst = measured == null ? analysis.worstHour : null;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -207,17 +212,35 @@ class _VerdictCard extends ConsumerWidget {
         children: [
           Row(
             children: [
-              RiskBadge(level),
-              const Spacer(),
+              Expanded(
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    RiskBadge(level),
+                    if (measured != null) const MeasuredHereTag(),
+                    if (measured?.simulated ?? false) const SimulatedTag(),
+                  ],
+                ),
+              ),
               if (worst != null)
                 Text(
                   'Peak feels like ${Formatters.tempFull(worst.feelsLikeC)}',
                   style: theme.textTheme.labelMedium,
                 ),
+              if (measured != null)
+                Text(
+                  'WBGT ${measured.wbgt.toStringAsFixed(1)} °C',
+                  style: theme.textTheme.labelMedium,
+                ),
             ],
           ),
           const SizedBox(height: 12),
-          Text(level.headline, style: theme.textTheme.headlineMedium),
+          Text(
+            context.tr(level.headline),
+            style: theme.textTheme.headlineMedium,
+          ),
           if (worst != null) ...[
             const SizedBox(height: 6),
             Text(

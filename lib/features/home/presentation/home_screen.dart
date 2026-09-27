@@ -17,6 +17,9 @@ import '../../../core/widgets/why_this_rating.dart';
 import '../../community/presentation/community_providers.dart';
 import '../../plan/presentation/plan_providers.dart';
 import '../../profile/presentation/profile_controller.dart';
+import '../../signal/presentation/signal_card.dart';
+import '../../signal/presentation/signal_providers.dart';
+import '../../signal/presentation/signal_widgets.dart';
 import '../../weather/data/weather_models.dart';
 import '../../weather/presentation/weather_providers.dart';
 import '../domain/tips_engine.dart';
@@ -88,7 +91,14 @@ class HomeScreen extends ConsumerWidget {
           error: (error, _) => ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              const SizedBox(height: 80),
+              // The Signal needs no internet: sync and a measured rating
+              // still work when the forecast can't load.
+              if (ref.watch(currentAssessmentProvider) != null) ...[
+                const _RiskHeroCard(weather: null),
+                const SizedBox(height: 14),
+              ],
+              const SignalCard(),
+              const SizedBox(height: 40),
               Icon(Icons.cloud_off,
                   size: 48, color: theme.colorScheme.onSurfaceVariant),
               const SizedBox(height: 16),
@@ -169,6 +179,8 @@ class _HomeBody extends ConsumerWidget {
               .fadeIn(duration: 400.ms)
               .slideY(begin: 0.04, curve: Curves.easeOutCubic),
         const SizedBox(height: 14),
+        const SignalCard(),
+        const SizedBox(height: 14),
         _MetricsGrid(weather: weather)
             .animate()
             .fadeIn(delay: 100.ms, duration: 400.ms),
@@ -245,7 +257,8 @@ class _HomeBody extends ConsumerWidget {
 class _RiskHeroCard extends ConsumerWidget {
   const _RiskHeroCard({required this.weather});
 
-  final WeatherBundle weather;
+  /// Null when the forecast couldn't load but a measured rating exists.
+  final WeatherBundle? weather;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -253,7 +266,9 @@ class _RiskHeroCard extends ConsumerWidget {
     final palette = context.riskPalette;
     final assessment = ref.watch(currentAssessmentProvider)!;
     final level = assessment.level;
-    final current = weather.current;
+    final current = weather?.current;
+    final measuredSimulated =
+        ref.watch(ratingSignalReadingProvider)?.simulated ?? false;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
@@ -274,36 +289,49 @@ class _RiskHeroCard extends ConsumerWidget {
         children: [
           Row(
             children: [
-              RiskBadge(level),
-              const Spacer(),
-              Text(
-                WeatherCodes.describe(current.weatherCode),
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+              Expanded(
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    RiskBadge(level),
+                    if (assessment.isMeasured) const MeasuredHereTag(),
+                    if (assessment.isMeasured && measuredSimulated)
+                      const SimulatedTag(),
+                  ],
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                Formatters.temp(current.tempC),
-                style: theme.textTheme.displayLarge,
-              ),
-              const SizedBox(width: 12),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Text(
-                  'feels like\n${Formatters.tempFull(current.feelsLikeC)}',
-                  style: theme.textTheme.titleSmall?.copyWith(
+              if (current != null)
+                Text(
+                  WeatherCodes.describe(current.weatherCode),
+                  style: theme.textTheme.labelMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
-              ),
             ],
           ),
+          const SizedBox(height: 10),
+          if (current != null)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  Formatters.temp(current.tempC),
+                  style: theme.textTheme.displayLarge,
+                ),
+                const SizedBox(width: 12),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    'feels like\n${Formatters.tempFull(current.feelsLikeC)}',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           Text(context.tr(level.headline), style: theme.textTheme.titleMedium),
           WhyThisRating(factors: assessment.factors),
         ],

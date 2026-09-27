@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/domain/risk/risk_engine.dart';
 import '../../profile/presentation/profile_controller.dart';
+import '../../signal/domain/signal_rating.dart';
+import '../../signal/presentation/signal_providers.dart';
 import '../data/weather_models.dart';
 import '../data/weather_repository.dart';
 
@@ -34,10 +36,16 @@ class WeatherController extends AsyncNotifier<WeatherBundle> {
 }
 
 /// Risk assessment of *right now* for *this user* — the Home hero card.
+///
+/// A fresh HeatNav Signal reading, measured on site, replaces the city
+/// forecast; it needs no network, so Today still rates with internet off.
 final currentAssessmentProvider = Provider<RiskAssessment?>((ref) {
+  final profile = ref.watch(profileControllerProvider);
+  final measured = ref.watch(ratingSignalReadingProvider);
+  if (measured != null) return SignalRating.assess(measured, profile);
+
   final weather = ref.watch(weatherProvider).valueOrNull;
   if (weather == null) return null;
-  final profile = ref.watch(profileControllerProvider);
   return RiskEngine.assess(
     conditions: ConditionsInput(
       tempC: weather.current.tempC,
