@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;600;700&family=Noto+Sans+Bengali:wght@600&family=Noto+Sans+Tamil:wght@600&family=Noto+Sans+Telugu:wght@600&family=Noto+Sans+Kannada:wght@600&family=Noto+Sans+Malayalam:wght@600&family=Noto+Sans+Gujarati:wght@600&family=Noto+Sans+Oriya:wght@600&family=Noto+Sans+Gurmukhi:wght@600&display=block" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FBF7F0; --ink:#1A1714; --soft:#5E564D;
+    --clay:#C0562B; --teal:#0E4F54; --rule:#E2D8C9; --band:#F3ECE1;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{background:var(--paper)}
+  body{
+    width:1240px; height:1754px;
+    font-family:'Noto Sans','Noto Sans Devanagari',sans-serif;
+    color:var(--ink); -webkit-font-smoothing:antialiased;
+    display:flex; flex-direction:column;
+  }
+  .pad{padding:0 64px}
+
+  /* ---------- header ---------- */
+  header{padding:40px 64px 22px; display:flex; align-items:center; gap:26px}
+  .mark{
+    width:104px;height:104px;flex:0 0 104px;border-radius:24px;
+    background:var(--clay); color:#fff;
+    font-family:'Noto Sans Devanagari',sans-serif; font-weight:700; font-size:62px;
+    display:flex;align-items:center;justify-content:center; line-height:1;
+    padding-bottom:6px;
+  }
+  .wordmark{display:flex;align-items:baseline;gap:16px}
+  .wordmark .deva{font-family:'Noto Sans Devanagari',sans-serif;font-weight:700;font-size:60px;line-height:1}
+  .wordmark .latin{font-weight:800;font-size:44px;letter-spacing:.14em;color:var(--soft)}
+  .gloss{font-size:19px;color:var(--soft);margin-top:8px}
+  .gloss b{color:var(--clay);font-weight:600}
+
+  /* ---------- hero line ---------- */
+  .hero{
+    margin:0 64px 26px; padding:22px 30px;
+    border-left:7px solid var(--clay); background:var(--band);
+    font-size:29px; line-height:1.32; font-weight:600;
+  }
+  .hero span{color:var(--clay)}
+
+  /* ---------- section frame ---------- */
+  .sec{margin:0 64px 22px}
+  .sechead{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+  .num{
+    width:34px;height:34px;flex:0 0 34px;border-radius:50%;
+    background:var(--ink);color:var(--paper);font-weight:700;font-size:17px;
+    display:flex;align-items:center;justify-content:center
+  }
+  .sechead h2{font-size:15px;letter-spacing:.2em;font-weight:800;text-transform:uppercase;color:var(--soft)}
+  .sechead .rule{flex:1;height:1px;background:var(--rule)}
+
+  /* ---------- problem ---------- */
+  .problem{display:flex;gap:22px}
+  .stat{
+    flex:1;background:#fff;border:1px solid var(--rule);border-radius:16px;
+    padding:18px 22px;
+  }
+  .stat .big{font-size:46px;font-weight:800;line-height:1;color:var(--teal)}
+  .stat .big.warn{color:var(--clay)}
+  .stat p{font-size:17px;line-height:1.4;color:var(--soft);margin-top:10px}
+  .problem-note{font-size:19px;line-height:1.42;margin-top:14px}
+  .problem-note em{font-style:normal;background:#F7E4D8;padding:2px 6px;border-radius:4px}
+
+  /* ---------- solution: the swap ---------- */
+  .swap{display:flex;align-items:stretch;gap:20px}
+  .card{background:#fff;border:1px solid var(--rule);border-radius:16px;padding:18px 22px;flex:1;display:flex;flex-direction:column}
+  .card .tag{font-size:13px;letter-spacing:.14em;font-weight:700;text-transform:uppercase;color:var(--soft);margin-bottom:12px}
+  .card.no{opacity:.72}
+  .card.no .val{font-size:44px;font-weight:800;color:#9A928A;text-decoration:line-through;text-decoration-thickness:4px}
+  .card.no p{font-size:16px;color:var(--soft);margin-top:10px}
+  .card.yes{border-color:var(--clay);border-width:2px;background:#FFF9F5}
+  .card.yes .val{font-size:26px;font-weight:700;line-height:1.3;color:var(--clay)}
+  .card.yes p{font-size:16px;color:var(--soft);margin-top:12px}
+  .arrow{display:flex;align-items:center;font-size:40px;color:var(--clay);font-weight:700}
+
+  /* ---------- how it works ---------- */
+  .flow{display:flex;gap:0;align-items:stretch}
+  .step{flex:1;position:relative;padding:0 14px}
+  .step:first-child{padding-left:0}
+  .step:last-child{padding-right:0}
+  .chip{
+    width:44px;height:44px;border-radius:12px;background:var(--teal);color:#fff;
+    font-weight:800;font-size:19px;display:flex;align-items:center;justify-content:center;margin-bottom:12px
+  }
+  .step h3{font-size:19px;font-weight:700;line-height:1.25;margin-bottom:8px}
+  .step p{font-size:14.5px;line-height:1.42;color:var(--soft)}
+  .step .who{
+    display:inline-block;margin-bottom:10px;font-size:11.5px;letter-spacing:.12em;
+    font-weight:700;text-transform:uppercase;padding:4px 9px;border-radius:999px
+  }
+  .who.t{background:#DDEBEC;color:var(--teal)}
+  .who.c{background:#F7E4D8;color:var(--clay)}
+  .step::after{
+    content:'›'; position:absolute; right:-9px; top:8px;
+    font-size:30px; color:var(--rule); font-weight:700;
+  }
+  .step:last-child::after{content:''}
+  .loop{
+    margin-top:14px;padding:12px 20px;border:1px dashed var(--teal);border-radius:12px;
+    font-size:17px;color:var(--teal);font-weight:600;text-align:center
+  }
+
+  /* ---------- built to survive ---------- */
+  .facts{display:flex;gap:18px}
+  .fact{flex:1;text-align:center;background:#fff;border:1px solid var(--rule);border-radius:16px;padding:14px 12px}
+  .fact .k{font-size:17px;font-weight:700;color:var(--teal)}
+  .fact .v{font-size:14.5px;color:var(--soft);margin-top:6px;line-height:1.35}
+
+  /* ---------- languages ---------- */
+  .langs{margin:0 64px 0;padding:18px 24px;background:var(--band);border-radius:16px}
+  .langs .cap{font-size:13px;letter-spacing:.2em;font-weight:800;text-transform:uppercase;color:var(--soft);margin-bottom:12px}
+  .langrow{display:flex;flex-wrap:wrap;gap:9px}
+  .lang{background:#fff;border:1px solid var(--rule);border-radius:999px;padding:7px 15px;font-size:17px;font-weight:600}
+  .l-hi,.l-mr{font-family:'Noto Sans Devanagari',sans-serif}
+  .l-bn,.l-as{font-family:'Noto Sans Bengali',sans-serif}
+  .l-ta{font-family:'Noto Sans Tamil',sans-serif}
+  .l-te{font-family:'Noto Sans Telugu',sans-serif}
+  .l-kn{font-family:'Noto Sans Kannada',sans-serif}
+  .l-ml{font-family:'Noto Sans Malayalam',sans-serif}
+  .l-gu{font-family:'Noto Sans Gujarati',sans-serif}
+  .l-or{font-family:'Noto Sans Oriya',sans-serif}
+  .l-pa{font-family:'Noto Sans Gurmukhi',sans-serif}
+
+  /* ---------- footer ---------- */
+  footer{
+    margin-top:auto;padding:18px 64px 26px;display:flex;justify-content:space-between;
+    align-items:flex-end;border-top:1px solid var(--rule);
+  }
+  footer .stack{font-size:14px;color:var(--soft);line-height:1.5;max-width:720px}
+  footer .stack b{color:var(--ink)}
+  footer .kicker{text-align:right;font-size:15px;color:var(--clay);font-weight:700;line-height:1.4}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="mark">प</div>
+  <div>
+    <div class="wordmark">
+      <span class="deva">पता</span>
+      <span class="latin">PATA</span>
+    </div>
+    <p class="gloss">In Hindi, <b>पता</b> means both <b>“to know”</b> and <b>“an address”</b> — knowing where a child actually is.</p>
+  </div>
+</header>
+
+<div class="hero">
+  A teacher of forty children cannot tell who understood today's lesson.
+  <span>PATA tells her in twenty seconds — and tells her what they got wrong, not just how many.</span>
+</div>
+
+<!-- 1. THE PROBLEM -->
+<section class="sec">
+  <div class="sechead"><span class="num">1</span><h2>The problem</h2><span class="rule"></span></div>
+  <div class="problem">
+    <div class="stat"><div class="big">40</div><p>children in one government school classroom</p></div>
+    <div class="stat"><div class="big">7</div><p>grade levels sitting in that same room</p></div>
+    <div class="stat"><div class="big warn">0</div><p>minutes in her day to find out who is lost</p></div>
+  </div>
+  <p class="problem-note">
+    She is not failing them — there is simply <em>no moment in the day</em> where finding out is possible.
+    And a test result a week later tells her a number, never the mistake behind it.
+  </p>
+</section>
+
+<!-- 2. THE SOLUTION -->
+<section class="sec">
+  <div class="sechead"><span class="num">2</span><h2>The solution — report the mistake, not the mark</h2><span class="rule"></span></div>
+  <div class="swap">
+    <div class="card no">
+      <div class="tag">What every app gives her</div>
+      <div class="val">3 / 5</div>
+      <p>True, and useless. She cannot teach a number tomorrow morning.</p>
+      <p style="margin-top:auto;padding-top:14px;border-top:1px solid var(--rule);font-size:15px">
+        And it usually reaches her a week later, when the lesson has moved on.</p>
+    </div>
+    <div class="arrow">→</div>
+    <div class="card yes">
+      <div class="tag">What PATA gives her</div>
+      <div class="val">“Eight children are still taking the smaller digit from the bigger one, whichever is on top.”</div>
+      <p>Every wrong option in the app is tied to one named misconception — so the result is a sentence she can put on the board.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 3. HOW IT WORKS -->
+<section class="sec">
+  <div class="sechead"><span class="num">3</span><h2>How it works</h2><span class="rule"></span></div>
+  <div class="flow">
+    <div class="step">
+      <div class="chip">1</div><span class="who t">Teacher</span>
+      <h3>Ask</h3>
+      <p>She reads one question aloud. The children answer A, B, C or D on their fingers — no devices in class.</p>
+    </div>
+    <div class="step">
+      <div class="chip">2</div><span class="who t">Teacher</span>
+      <h3>Tap · 20 sec</h3>
+      <p>She taps whoever got it wrong on a picture of her own seating plan. One extra tap names the common wrong answer.</p>
+    </div>
+    <div class="step">
+      <div class="chip">3</div><span class="who t">Teacher</span>
+      <h3>Send home</h3>
+      <p>Per-child, never an average. One tap sends exactly those children practice for the evening.</p>
+    </div>
+    <div class="step">
+      <div class="chip">4</div><span class="who c">Child</span>
+      <h3>Understand</h3>
+      <p>At home they open their own app, in their own language, and the idea is explained — read aloud if they cannot read it.</p>
+    </div>
+    <div class="step">
+      <div class="chip">5</div><span class="who c">Child</span>
+      <h3>Practise</h3>
+      <p>Five questions that get harder if they are getting it and easier if they are not. Answers always shown.</p>
+    </div>
+  </div>
+  <div class="loop">↺ By morning she sees, for each child by name, the mistake they are still making — and the loop starts again.</div>
+</section>
+
+<!-- 4. BUILT FOR WHERE IT IS NEEDED -->
+<section class="sec">
+  <div class="sechead"><span class="num">4</span><h2>Built for where it is actually needed</h2><span class="rule"></span></div>
+  <div class="facts">
+    <div class="fact"><div class="k">Fully offline</div><div class="v">Checks, reading, practice, reports — with the network off, permanently</div></div>
+    <div class="fact"><div class="k">Her own phone</div><div class="v">24 MB. No tablets, no projector, no new hardware</div></div>
+    <div class="fact"><div class="k">No account</div><div class="v">No password, no email, nothing to forget or reset</div></div>
+    <div class="fact"><div class="k">Names stay put</div><div class="v">No child's name ever leaves the device</div></div>
+    <div class="fact"><div class="k">No rankings</div><div class="v">Teachers are never scored, compared or named</div></div>
+  </div>
+</section>
+
+<div class="langs">
+  <div class="cap">Every screen, every lesson, every question — in twelve Indian languages</div>
+  <div class="langrow">
+    <span class="lang l-hi">हिन्दी</span>
+    <span class="lang">English</span>
+    <span class="lang l-mr">मराठी</span>
+    <span class="lang l-bn">বাংলা</span>
+    <span class="lang l-ta">தமிழ்</span>
+    <span class="lang l-te">తెలుగు</span>
+    <span class="lang l-kn">ಕನ್ನಡ</span>
+    <span class="lang l-ml">മലയാളം</span>
+    <span class="lang l-gu">ગુજરાતી</span>
+    <span class="lang l-or">ଓଡ଼ିଆ</span>
+    <span class="lang l-pa">ਪੰਜਾਬੀ</span>
+    <span class="lang l-as">অসমীয়া</span>
+  </div>
+</div>
+
+<footer>
+  <div class="stack">
+    <b>Android app</b> · Vite + TypeScript, no framework · Capacitor · IndexedDB ·
+    Tesseract.js on-device OCR in 12 scripts · Cloudflare Worker proxy.<br>
+    <b>AI is optional.</b> The 20-second check, the question bank, OCR, the adaptive quiz
+    generator and all twelve languages run on the phone with no key and no signal.
+  </div>
+  <div class="kicker">Twenty seconds of her day.<br>Every child, every lesson.</div>
+</footer>
+
+</body>
+</html>
